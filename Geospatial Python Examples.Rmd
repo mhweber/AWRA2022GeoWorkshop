@@ -7,18 +7,14 @@ editor_options:
 ## Setup
 ```{r}
 library(sf)
-library(reticulate)
-use_condaenv('geo')
+library(ggplot2)
 ```
 
-## Lesson 1: Accessing Spatial Data Files in R and Python
-We'll begin by looking at the primary libraries in both R and Python for working with spatial data.
+## Lesson 1: Accessing Spatial Data Files
 
 ### Vector Data
 
-#### Vector Data in R
-Shapefiles
-`sf`
+#### Shapefiles
 ```{r}
 # download.file("ftp://ftp.gis.oregon.gov/adminbound/citylim_2017.zip","citylim_2017.zip")
 # unzip("citylim_2017.zip", exdir = ".")
@@ -27,11 +23,7 @@ citylims <- st_read("citylim_2017.shp")
 
 ```{r}
 options(scipen=3)
-plot(citylims$geometry, axes=T, main='Oregon City Limits') # plot it!
-```
-`geopandas`
-```{python}
-
+ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
 ```
 
 
@@ -39,7 +31,7 @@ Geodatabases
 ```{r}
 # download.file('https://ftp.gis.oregon.gov/framework/bioscience/ofpbds_2020.zip','ofpbds_2020.zip')
 # unzip("ofpbds_2020.zip", exdir = ".")
-st_layers()
+st_layers('ofpbds2020.gdb')
 fish_barriers <- read_sf('ofpbds_2020.zip')
 ```
 
