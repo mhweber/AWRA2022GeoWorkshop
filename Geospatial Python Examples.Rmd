@@ -26,7 +26,6 @@ options(scipen=3)
 ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
 ```
 
-
 Geodatabases
 ```{r}
 # download.file('https://ftp.gis.oregon.gov/framework/bioscience/ofpbds_2020.zip','ofpbds_2020.zip')
@@ -35,5 +34,11 @@ st_layers('ofpbds2020.gdb')
 fish_barriers <- read_sf('ofpbds_2020.zip')
 ```
 
+Geopackages
+```{r}
+library(dplyr)
+nc <- system.file("gpkg/nc.gpkg", package="sf") %>% read_sf() # reads in
+glimpse(nc)
+```
 
 
