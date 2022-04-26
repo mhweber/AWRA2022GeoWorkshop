@@ -1,7 +1,7 @@
 ---
 title: "Geoprocessing in R and Python"
 output: html_notebook
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 ## Setup
@@ -23,7 +23,7 @@ citylims <- st_read("citylim_2017.shp")
 
 ```{r}
 options(scipen=3)
-ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
+ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits')
 ```
 
 
@@ -34,6 +34,3 @@ Geodatabases
 st_layers('ofpbds2020.gdb')
 fish_barriers <- read_sf('ofpbds_2020.zip')
 ```
-
-
-
