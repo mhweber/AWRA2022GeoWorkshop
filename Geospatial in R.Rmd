@@ -1,0 +1,76 @@
+---
+title: "Geoprocessing in R"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+## Setup
+```{r}
+library(sf)
+library(ggplot2)
+```
+
+## Lesson 1: Accessing Spatial Data Files
+- There are several ways we typically get spatial data into R:
+  + Load spatial files we have on our machine or from remote source
+  + Load spatial data that is part of an R package
+  + Grab data using API (often making use of particular R packages)
+  + Converting flat files with x,y data to spatial data
+  + Geocoding data
+
+### Vector Data
+For reading and writing vector data in R, the primary package you'll use is:
+ * `sf`for vector formats such as [ESRI Shapefiles](https://en.wikipedia.org/wiki/Shapefile),  [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON), and [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) - both packages use **OGR**, which is a library under the [GDAL](https://en.wikipedia.org/wiki/GDAL) source tree,under the hood
+ 
+ We can quickly discover supported I/O vector formats with `sf`:
+```{r message=FALSE, warning=FALSE, error=FALSE}
+library(knitr)
+library(sf)
+print(paste0('There are ',st_drivers("vector") %>% nrow(), ' vector drivers available using st_read or read_sf'))
+```
+`sf` can be used to read numerous file types:
+
+- Shapefiles
+- Geodatabases
+- Geopackages
+- Geojson
+- Spatial database files
+
+#### Shapefiles
+Typically working with vector GIS data we work with ESRI shapefiles or geodatabases - here we have an example of how one would read in a shapefile using `sf`:
+```{r}
+# download.file("ftp://ftp.gis.oregon.gov/adminbound/citylim_2017.zip","citylim_2017.zip")
+# unzip("citylim_2017.zip", exdir = ".")
+citylims <- st_read("citylim_2017.shp")
+```
+
+```{r}
+options(scipen=3)
+ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
+```
+
+Geodatabases
+```{r}
+# download.file('https://ftp.gis.oregon.gov/framework/bioscience/ofpbds_2020.zip','ofpbds_2020.zip')
+# unzip("ofpbds_2020.zip", exdir = ".")
+st_layers('ofpbds2020.gdb')
+fish_barriers <- read_sf('ofpbds_2020.zip')
+```
+
+Geopackages
+```{r}
+library(dplyr)
+nc <- system.file("gpkg/nc.gpkg", package="sf") %>% read_sf() # reads in
+glimpse(nc)
+```
+
+## Raster Data
+For reading and writing raster data in R, the primary packages you'll use are:
+ * `raster` and / or `terra` for raster formats such as [GeoTIFF](https://en.wikipedia.org/wiki/GeoTIFF) or [ESRI or ASCII grid](https://en.wikipedia.org/wiki/Esri_grid) using [GDAL](https://en.wikipedia.org/wiki/GDAL) under the hood
+
+As well as I/O raster formats via `sf`:
+```{r message=FALSE, warning=FALSE, error=FALSE}
+library(knitr)
+print(paste0('There are ',st_drivers(what='raster') %>% nrow(), ' raster drivers available'))
+kable(head(st_drivers(what='raster'),n=5))
+```
