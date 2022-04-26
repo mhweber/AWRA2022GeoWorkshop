@@ -8,6 +8,8 @@ editor_options:
 ```{r}
 library(sf)
 library(ggplot2)
+library(dplyr)
+library(readr)
 ```
 
 ## Lesson 1: Accessing Spatial Data Files
@@ -49,7 +51,7 @@ options(scipen=3)
 ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
 ```
 
-Geodatabases
+#### Geodatabases
 ```{r}
 download.file("ftp://ftp.gis.oregon.gov/adminbound/OregonStateParks_20181010.zip", "OregonStateParks.zip")
 unzip("OregonStateParks.zip", exdir = ".")
@@ -59,18 +61,36 @@ fgdb = "OregonStateParks_20181010.gdb"
 st_layers(fgdb)
 ```
 
-Read in the layer by name or position
+Read in the layer
 ```{r}
 # Read the feature class
 parks <- st_read(dsn=fgdb,layer="LO_PARKS")
 ggplot(parks) + geom_sf()
 ```
 
-Geopackages
+#### Geopackages
+Here we read in a geopackage loaded as part of the `sf` package.  We do a couple things here - in `st_layers`, we see there is just one layer, so we don't need to specify `layer` as a parameter in `read_sf`.  Second, we use pipes and dplyr syntax to read in our file - a nice background resource that delves into using the `tidyverse` is [R for Data Science](https://r4ds.had.co.nz/index.html).
+
 ```{r}
-library(dplyr)
+st_layers(system.file("gpkg/nc.gpkg", package="sf"))
 nc <- system.file("gpkg/nc.gpkg", package="sf") %>% read_sf() # reads in
 glimpse(nc)
+write_sf(nc, 'nc.gpkg', 'nc', delete_layer = TRUE)
+```
+
+### Open spatial data sources
+There is a wealth of open spatial data accessible online now via static URLs or APIs - a few examples include [Data.gov](https://catalog.data.gov/dataset?metadata_type=geospatial), NASA [SECAC Portal](http://sedac.ciesin.columbia.edu/), [Natural Earth](http://www.naturalearthdata.com/), [UNEP GEOdata](http://geodata.grid.unep.ch/), and countless others listed here at [Free GIS Data](https://freegisdata.rtwilson.com/)
+
+Below is an example of pulling in US states using the `rnaturalearth` package - note that the default is to pull in data as `sp` objects and we coerce to `sf`.  Also take a look at the chained operation using dplyr.  Try changing the filter or a parameter in ggplot.
+```{r naturalearth, , message=FALSE, warning=FALSE, error=FALSE}
+library(rnaturalearth)
+library(dplyr)
+library(ggplot2)
+states <- ne_states(country = 'United States of America')
+states_sf <- st_as_sf(states)
+states_sf %>%
+  dplyr::filter(!name %in% c('Hawaii','Alaska') & !is.na(name)) %>%
+  ggplot + geom_sf()
 ```
 
 ## Raster Data
