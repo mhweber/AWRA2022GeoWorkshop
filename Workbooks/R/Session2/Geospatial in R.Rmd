@@ -51,10 +51,19 @@ ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits')
 
 Geodatabases
 ```{r}
-# download.file('https://ftp.gis.oregon.gov/framework/bioscience/ofpbds_2020.zip','ofpbds_2020.zip')
-# unzip("ofpbds_2020.zip", exdir = ".")
-st_layers('ofpbds2020.gdb')
-fish_barriers <- read_sf('ofpbds_2020.zip')
+download.file("ftp://ftp.gis.oregon.gov/adminbound/OregonStateParks_20181010.zip", "OregonStateParks.zip")
+unzip("OregonStateParks.zip", exdir = ".")
+fgdb = "OregonStateParks_20181010.gdb"
+
+# List all feature classes in a file geodatabase
+st_layers(fgdb)
+```
+
+Read in the layer by name or position
+```{r}
+# Read the feature class
+parks <- st_read(dsn=fgdb,layer="LO_PARKS")
+ggplot(parks) + geom_sf()
 ```
 
 Geopackages
