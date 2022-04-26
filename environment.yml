@@ -20,12 +20,21 @@ dependencies:
 
   # Other third-party deps
   - cartopy
-  - datashader
-  - mapclassify
   - contextily
-  - osmnx
-  - pytables
+  - datashader
   - ipykernel
   - ipywidgets
+  - mapclassify
   - proplot
+  - pytables
   - xarray-spatial
+
+  - pip
+  - pip:
+    - git+https://github.com/cheginit/async_retriever.git
+    - git+https://github.com/cheginit/pygeoogc.git
+    - git+https://github.com/cheginit/pygeoutils.git
+    - git+https://github.com/cheginit/pynhd.git
+    - git+https://github.com/cheginit/py3dep.git
+    - git+https://github.com/cheginit/pydaymet.git
+    - git+https://github.com/cheginit/pygeohydro.git
