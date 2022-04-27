@@ -79,7 +79,7 @@ write_sf(nc, 'nc.gpkg', 'nc', delete_layer = TRUE)
 ```
 
 ### Open spatial data sources
-There is a wealth of open spatial data accessible online now via static URLs or APIs - a few examples include [Data.gov](https://catalog.data.gov/dataset?metadata_type=geospatial), NASA [SECAC Portal](http://sedac.ciesin.columbia.edu/), [Natural Earth](http://www.naturalearthdata.com/), [UNEP GEOdata](http://geodata.grid.unep.ch/), and countless others listed here at [Free GIS Data](https://freegisdata.rtwilson.com/)
+There's a wealth of open spatial data accessible online now via static URLs or APIs - just a few examples include [Data.gov](https://catalog.data.gov/dataset?metadata_type=geospatial), NASA [SECAC Portal](http://sedac.ciesin.columbia.edu/), [Natural Earth](http://www.naturalearthdata.com/), [UNEP GEOdata](http://geodata.grid.unep.ch/), and countless others listed here at [Free GIS Data](https://freegisdata.rtwilson.com/)
 
 Below is an example of pulling in US states using the `rnaturalearth` package - note that the default is to pull in data as `sp` objects and we coerce to `sf`.  Also take a look at the chained operation using dplyr.  Try changing the filter or a parameter in ggplot.
 ```{r naturalearth, , message=FALSE, warning=FALSE, error=FALSE}
@@ -92,6 +92,14 @@ states_sf %>%
   dplyr::filter(!name %in% c('Hawaii','Alaska') & !is.na(name)) %>%
   ggplot + geom_sf()
 ```
+
+```{r}
+states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_500k.json')
+states <- states[!states$NAME %in% c('Hawaii','Alaska'),]
+plot(states$geometry)
+```
+
+
 
 ## Raster Data
 For reading and writing raster data in R, the primary packages you'll use are:
