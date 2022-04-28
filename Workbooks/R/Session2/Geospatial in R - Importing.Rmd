@@ -78,7 +78,7 @@ glimpse(nc)
 write_sf(nc, 'nc.gpkg', 'nc', delete_layer = TRUE)
 ```
 
-### Open spatial data sources
+#### Open spatial data sources
 There's a wealth of open spatial data accessible online now via static URLs or APIs - just a few examples include [Data.gov](https://catalog.data.gov/dataset?metadata_type=geospatial), NASA [SECAC Portal](http://sedac.ciesin.columbia.edu/), [Natural Earth](http://www.naturalearthdata.com/), [UNEP GEOdata](http://geodata.grid.unep.ch/), and countless others listed here at [Free GIS Data](https://freegisdata.rtwilson.com/)
 
 Below is an example of pulling in US states using the `rnaturalearth` package - note that the default is to pull in data as `sp` objects and we coerce to `sf`.  Also take a look at the chained operation using dplyr.  Try changing the filter or a parameter in ggplot.
@@ -99,7 +99,30 @@ states <- states[!states$NAME %in% c('Hawaii','Alaska'),]
 plot(states$geometry)
 ```
 
+#### Reading in subsets of vector data
+Imagine we have really large datasets we need to work with.  We can subset the data as we read-in using SQL with `sf` as in this toy example using states data above.  Let's try to read in just PNW states from the states .json data.  See [st_read](https://r-spatial.github.io/sf/reference/st_read.html) for another example of this using the `sf` package `nc` data.
+```{r}
+library(stringr)
+query_str <- str_c('SELECT * FROM "gz_2010_us_040_00_500k" WHERE NAME IN (\'',
+                     'Oregon', '\', \'','Washington','\',\'','Idaho','\')')                     
+states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_500k.json',query = query_str)
+glimpse(states)
+plot(states$`_ogr_geometry_`)
+```
 
+#### Spatial subset
+We can also perform a spatial subset on read-in.  We extract our geometry list-column as well-known text and pass it as a filter on read in.
+```{r}
+wkt = st_as_text(st_geometry(states[1,])) # here we grab just WA from our PNW states in previous step
+# filter by bbox of first feature geometry selected above:
+states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_500k.json',wkt_filter = wkt)
+plot(states$geometry)
+# why are Oregon and Idaho still included?
+```
+
+
+#### Exercise
+Based on examples of reading in different datasets and subsetting, try to find a dataset online to read in, or try a different subset operation on example datasets so far, or both.
 
 ## Raster Data
 For reading and writing raster data in R, the primary packages you'll use are:
