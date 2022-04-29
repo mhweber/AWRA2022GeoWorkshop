@@ -110,6 +110,31 @@ glimpse(states)
 plot(states$`_ogr_geometry_`)
 ```
 
+#### Read in OpenStreetMap data
+The [osmdata](https://github.com/ropensci/osmdata) package is facilitates accesses the OpenStreetMap (OSM) database in R and allows us to pull OSM data directly into R data structures and work with in R.
+
+First we'll find available tags to get foot paths to plot
+```{r osmdata1 , message=FALSE, warning=FALSE, error=FALSE}
+library(osmdata)
+library(mapview)
+head(available_tags("highway")) # get rid of head when you run - just used to truncate output
+```
+
+```{r osmdata2 , message=FALSE, warning=FALSE, error=FALSE}
+footway <- opq(bbox = "corvallis oregon") %>% 
+  add_osm_feature(key = "highway", value = c("footway","cycleway","path", "path","pedestrian","track")) %>% 
+  osmdata_sf()
+footway <- footway$osm_lines
+rstrnts <- opq(bbox = "corvallis oregon") %>% 
+    add_osm_feature(key = "amenity", value = "restaurant") %>%
+    osmdata_sf()
+rstrnts <- rstrnts$osm_points
+mapview(footway$geometry) + mapview(rstrnts)
+```
+
+#### Exercise
+Take a minute and try pulling in data of your own for your own area and plotting using `osmdata`
+
 #### Spatial subset
 We can also perform a spatial subset on read-in.  We extract our geometry list-column as well-known text and pass it as a filter on read in.
 ```{r}
@@ -119,7 +144,6 @@ states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_04
 plot(states$geometry)
 # why are Oregon and Idaho still included?
 ```
-
 
 #### Exercise
 Based on examples of reading in different datasets and subsetting, try to find a dataset online to read in, or try a different subset operation on example datasets so far, or both.
