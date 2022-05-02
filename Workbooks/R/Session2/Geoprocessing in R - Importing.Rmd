@@ -24,8 +24,8 @@ library(stringr)
 library(osmdata)
 library(mapview)
 library(remotes)
-install_github("mhweber/Rspatialworkshop")
-library(Rspatialworkshop)
+# install_github("mhweber/awra2020spatial")
+library(awra2020spatial)
 sessionInfo()
 ```
 
@@ -56,8 +56,8 @@ print(paste0('There are ',st_drivers("vector") %>% nrow(), ' vector drivers avai
 #### Shapefiles
 Typically working with vector GIS data we work with ESRI shapefiles or geodatabases - here we have an example of how one would read in a shapefile using `sf`:
 ```{r}
-download.file("ftp://ftp.gis.oregon.gov/adminbound/citylim_2017.zip","citylim_2017.zip")
-unzip("citylim_2017.zip", exdir = ".")
+# download.file("ftp://ftp.gis.oregon.gov/adminbound/citylim_2017.zip","citylim_2017.zip")
+# unzip("citylim_2017.zip", exdir = ".")
 citylims <- st_read("citylim_2017.shp")
 ```
 
@@ -68,8 +68,8 @@ ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits')
 
 #### Geodatabases
 ```{r}
-download.file("ftp://ftp.gis.oregon.gov/adminbound/OregonStateParks_20181010.zip", "OregonStateParks.zip")
-unzip("OregonStateParks.zip", exdir = ".")
+# download.file("ftp://ftp.gis.oregon.gov/adminbound/OregonStateParks_20181010.zip", "OregonStateParks.zip")
+# unzip("OregonStateParks.zip", exdir = ".")
 fgdb = "OregonStateParks_20181010.gdb"
 
 # List all feature classes in a file geodatabase
