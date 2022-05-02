@@ -1,5 +1,5 @@
 ---
-title: "Geoprocessing in R"
+title: "Importing Spatial Data"
 output:
   html_notebook:
     toc: yes

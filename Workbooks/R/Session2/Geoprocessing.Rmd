@@ -1,0 +1,318 @@
+---
+title: "Geoprocessing Spatial Data"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    toc_depth: 4
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+## Setup
+```{r}
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(knitr)
+library(dataRetrieval)
+library(mapview)
+library(remotes)
+# install_github("mhweber/awra2020spatial")
+library(awra2020spatial)
+sessionInfo()
+```
+
+# Geoprocessing
+## Lesson Goals
+
+We'll walk through some typical topological operations (spatial subsetting, spatial joins, dissolve) with vector data using `sf` - followed by a couple 'real world' spatial tasks.  We'll be using several of the geometric binary predicates described in `?sf::geos_binary_pred`. We'll also incorporate a bit of raster processing such as map algebra, cropping, and zonal statistics.
+
+## Spatial Subsetting
+We'll work with gages data from the previous section, and incorporate HUC12 data using services to demonstrate spatial subsetting. We'll demonstrate using the `dataRetrieval` package to query the [Network Linked Data Index](https://labs.waterdata.usgs.gov/about-nldi/index.html) based on the [NLDI Interface] `dataRetrieval` package article by Mike. 
+
+First bring in gages and if we need to do again, promote to spatial features as we did in the last section of Importing
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+data(gages)
+gages_sf <- gages %>%
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269, remove = FALSE) %>%
+  dplyr::select(STATION_NM,LON_SITE, LAT_SITE)
+```
+
+Next we're going to use `dataRetrieval` to pull in a HUC12 basin for an arbitraty site.  First we'll review available sources:
+```{r}
+get_nldi_sources()
+```
+
+The gages data we're using has an NWIS ID - we'll query the NLDI for data association with NWIS gage 14187200 (South Santian in Oregon) and get the upstream NHDPlus mainstem reaches and the associated HUC12 and quickly view in an interactive map using `mapview`
+```{r}
+findNLDI(nwis = "14187200")
+```
+
+What features are associated with this gage? We can specify upstream main channel and HUC12 - what is returned in our object is features associated with upstream flowlines and points representing HUC12 pourpoints
+```{r}
+SouthSantiam <- findNLDI(nwis = "14187200",
+                         nav = "UM", 
+                         find = c("huc12", "flowlines","basin"))
+mapview(SouthSantiam$UM_flowlines, legend=FALSE) + mapview(SouthSantiam$UM_huc12pp, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
+```
+
+`sf` supports spatial subsetting using indexing - we can demonstrate this by finding gages that are spatially subset by the bounding box of the South Santiam basin we just extracted.  The result should include the gage we used to define the South Santiam! Any others?
+
+Important, the coordinate reference system needs to be the same in R for features involved in any spatial operations!
+```{r}
+st_crs(SouthSantiam$basin)==st_crs(gages_sf)
+```
+Transform both to Oregon Universal Transverse Mercator (UTM) zone 10 North
+```{r}
+SouthSantiam$basin <- st_transform(SouthSantiam$basin, 3157)
+gages_sf <- st_transform(gages_sf, 3157)
+```
+
+Index and view!
+```{r}
+gages_SouthSantiam <- gages_sf[SouthSantiam$basin,]
+
+mapview(gages_SouthSantiam, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
+```
+
+## Spatial Join
+We'll use chained operations to select just a couple columns from both bike_paths and parks, and then we'll do a spatial join operation with `sf`.  Note that when we do a select on just attribute column, the geometry column remains - geometry is sticky in `sf`!
+```{r join, message=FALSE, warning=FALSE, error=FALSE}
+library(dplyr)
+bike_paths <- bike_paths %>% 
+  dplyr::select(ROUTE_NAME)
+parks <- parks %>% 
+  dplyr::select(LOCATION_NAME, ZIPCODE,PARK_TYPE)
+parks_bike_paths <- st_join(parks, bike_paths) # st_intersects is the default
+glimpse(parks_bike_paths)
+```
+
+## Dissolve
+We can perform a spatial dissolve in `sf` using `dplyr` `group_by` and `summarize` functions with an `sf` object.
+What we are doing here is using zip code as our grouping variable with `dplyr`, summarizing area using the `sf` `st_area` function at that grouping level, and mapping the result.
+```{r dissolve, message=FALSE, warning=FALSE, error=FALSE}
+library(ggplot2)
+parks$AREA <- st_area(parks)
+parks_zip <- parks %>% 
+  group_by(ZIPCODE) %>%
+  summarise(AREA = sum(AREA)) %>%
+  ggplot() + geom_sf(aes(fill=(ZIPCODE))) +
+  ggtitle("Austin Parks by Zip Code") + 
+  theme_bw()
+parks_zip
+```
+
+## Spatial Overlap
+Here's a fun example using material posted by Nicholas Tierney [here](https://www.njtierney.com/post/2021/08/21/how-much-one-shapefile-overlaps-another/) that he put together based on [this Stack Overflow discussion](https://gis.stackexchange.com/questions/362466/calculate-percentage-overlap-of-2-sets-of-polygons-in-r).
+
+First we'll extract the Portland Oregon metropolitan area using the `tidycensus` and `tigris` packages
+```{r overlap, message=FALSE, warning=FALSE, error=FALSE}
+library(ggplot2)
+library(tidycensus)
+library(tidyverse)
+library(tigris)
+
+tracts <- get_acs(geography = "tract", variables = "DP04_0134", 
+                state = "OR", geometry = TRUE, progress_bar = FALSE)
+
+pdx <- core_based_statistical_areas(cb = TRUE, progress_bar = FALSE) %>%
+  filter(GEOID == "38900")
+ggplot() + 
+  geom_sf(data = pdx,
+          fill = "forestgreen") 
+```
+
+### Next we'll create a dummy spatial polygon file to compare area with using the `rmapshaper` package to simplify the border of the PDX metropolitan polygon
+```{r overlap2, message=FALSE, warning=FALSE, error=FALSE}
+library(rmapshaper) 
+pdx_simplified <- pdx %>% 
+  ms_simplify(keep = 0.01)
+```
+
+### Then we can overlay polygons in ggplot to see how similar they are, showing the original census PDX metropolitan area in green, and new simplified polygon in red
+```{r overlap3, message=FALSE, warning=FALSE, error=FALSE}
+ggplot() + 
+  geom_sf(data = pdx,
+          fill = "forestgreen", alpha = 0.5) + 
+  geom_sf(data = pdx_simplified, 
+          fill = "firebrick",
+          alpha = 0.5)
+```
+
+### Now that we have an original and simplified polygon to compare, the process we want to use is:
+
+- Calculate original metro area polygon area
+- Calculate the intersection of these two areas - original and simplified (st_intersection)
+- Calculate that area (st_area)
+- Then only keep the relevant data again
+
+We'll run the steps then combine into a function
+```{r overlap5, message=FALSE, warning=FALSE, error=FALSE, eval=FALSE}
+original_area <- pdx %>% 
+    mutate(original_area = st_area(.)) %>% 
+    dplyr::select(NAME, original_area) %>% 
+    st_drop_geometry()
+
+intersection_area <- st_intersection(pdx, pdx_simplified) %>% 
+    mutate(intersect_area = st_area(.)) %>% 
+    dplyr::select(NAME, intersect_area) %>% 
+    st_drop_geometry()
+```
+
+### Exercise
+This step should have given you an error -THIS IS VERY COMMON WORKING WITH SPATIAL DATA IN R AND USING `sf`.
+
+### Solution
+```{r overlap6, message=FALSE, warning=FALSE, error=FALSE}
+pdx_simplified <- st_make_valid(pdx_simplified)
+pdx <- st_make_valid(pdx)
+
+original_area <- pdx %>% 
+    mutate(original_area = st_area(.)) %>% 
+    dplyr::select(NAME, original_area) %>% 
+    st_drop_geometry()
+    
+intersection_area <- st_intersection(pdx, pdx_simplified) %>% 
+    mutate(intersect_area = st_area(.)) %>% 
+    dplyr::select(NAME, intersect_area) %>% 
+    st_drop_geometry()
+
+# show the area of intersection
+intersection_area
+
+# show the proportion of overlap
+intersection_area %>% 
+    left_join(original_area, 
+              by = "NAME") %>% 
+    mutate(orig = as.numeric(original_area),
+           new = as.numeric(intersect_area),
+           proportion = (new / orig) * 100)
+```
+
+### Exercise
+Why did I use `as.numeric` in the `mutate` statement above?
+ 
+#### Solution
+`sf` will calculate area or length for features as `units` - which is convenient and forces you to be up front about units used, but you when you do calculations with attributes stored as units the units are retained - which is often not what is desired. You can see this behavior using `str(st_area(pdx))`.
+
+All steps rolled into a function
+```{r overlap7, message=FALSE, warning=FALSE, error=FALSE}
+calculate_spatial_overlap <-
+  function(shape_new,shape_old,     shared_column_name) {
+    intersection_area <- st_intersection(shape_new, shape_old) %>% 
+    mutate(intersect_area = st_area(.)) %>% 
+    dplyr::select(shared_column_name, intersect_area) %>% 
+    st_drop_geometry()
+  
+  # Create a fresh area variable
+  shape_old_areas <- shape_old %>% 
+    mutate(original_area = st_area(.)) %>% 
+    dplyr::select(original_area, shared_column_name) %>% 
+    st_drop_geometry()
+  
+  intersection_area %>% 
+    left_join(shape_old_areas, 
+              by = shared_column_name) %>% 
+    mutate(orig = as.numeric(original_area),
+           new = as.numeric(intersect_area),
+           proportion = (new / orig) * 100)
+  
+}
+
+calculate_spatial_overlap(pdx, pdx_simplified, shared_column_name='NAME')
+```
+
+## Deriving data for a sites or a watershed
+
+### Extract using sites
+First we'll use `dataRetrieval` to find NWIS sites in Benton County Oregon
+```{r wshds, message=FALSE, warning=FALSE, error=FALSE, fig.width=8}
+library(mapview)
+library(dataRetrieval)
+library(sf)
+Benton_Stations <- readNWISdata(stateCd="Oregon", countyCd="Benton")
+siteInfo <- attr(Benton_Stations , "siteInfo") 
+stations_sf = st_as_sf(siteInfo, coords = c("dec_lon_va", "dec_lat_va"), crs = 4269,agr = "constant")
+mapview(stations_sf)
+```
+
+#### Exercise
+What is the `agr` argument to `st_as_sf` in code chunk above?
+
+#### Solution
+Try `help(st_sf)` and look at details, and try `demo(nc)` to see a worked example.  Basically, `agr` specifies the attribute-geometry relationship - does the attribute represent a constant value, an aggregation over the geometry, or an identity that uniquely identifies the geometry.  For the most part I haven't paid too much attention to this parameter but similar to `units`, it can help with constructing a more self-descriptive spatial object.
+
+### River reaches and basin
+Next we'll use `nhdplusTools` to get the river reaches for the Mary's River in Benton county, get the watershed Mary's River watershed, and then spatially subset the stations to the watershed
+```{r wshds2, message=FALSE, warning=FALSE, error=FALSE}
+library(nhdplusTools)
+start_comid = 23762881
+nldi_feature <- list(featureSource = "comid", featureID = start_comid)
+
+flowline_nldi <- navigate_nldi(nldi_feature, mode = "UT", data_source = "flowlines", distance=5000)
+
+basin <- get_nldi_basin(nldi_feature = nldi_feature)
+```
+
+### StreamCat data for watershed 
+[StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-dataset-0) provides pre-compiled watershed metrics for every NHDPlus stream reach in the CONUS. Note that the [StreamCatTools R package](https://github.com/USEPA/StreamCatTools) is in alpha development and will only work behind the EPA firewall at the moment (must be connected to VPN to use)
+```{r wshds3, message=FALSE, warning=FALSE, error=FALSE, fig.width=8}
+# install_github('USEPA/StreamCatTools')
+library(StreamCatTools)
+# get NHDPlus COMIDS for flowlines of the Mary's River - some machinations on our data from NLDI using nhdplusTools...
+comids <- c(flowline_nldi$origin$comid,flowline_nldi$UT_flowlines$nhdplus_comid)
+comids <- paste(comids,collapse=",",sep="")
+
+df <- sc_get_data(metric='PctImp2011', aoi='catchment', comid=comids)
+flowline_nldi$UT_flowlines$PCTIMP2011CAT <- df$PCTIMP2011CAT[match(flowline_nldi$UT_flowlines$nhdplus_comid, df$COMID)]
+mapview(flowline_nldi$UT_flowlines, zcol = "PCTIMP2011CAT", legend = TRUE) + mapview(basin, alpha.regions=.07)
+```
+
+## Extract
+Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
+
+Extract of elevation for station points
+```{r extract, message=FALSE, warning=FALSE, error=FALSE}
+library(FedData)
+library(terra)
+# The data access for elevation using FedData slow, so I've commented out and saved the data locally...
+
+# elev <- get_ned(template = as(basin,'Spatial'),label='Marys River')
+# marys_elev <- terra::crop(elev, basin)
+# terra::writeRaster(marys_elev, 'C:/Users/mweber/Temp/marys_elev.tif')
+marys_elev <- terra::rast('C:/Users/mweber/Temp/marys_elev.tif')
+
+st_crs(stations_sf)$wkt == crs(marys_elev)
+marys_elev <- terra::project(marys_elev, st_crs(stations_sf)$wkt)
+stations_sf$elevation <- terra::extract(marys_elev, vect(stations_sf))
+stations_sf$elevation
+```
+
+Elevation summary for the watershed - doing zonal statistics using a vector feature zone on a raster
+```{r extract2, message=FALSE, warning=FALSE, error=FALSE}
+# project both our raster and polygon data
+library(terra)
+basin <- st_transform(basin, 5070)
+marys_elev <- project(marys_elev, st_crs(basin)$wkt, method = "bilinear")
+
+meanelev <- terra::extract(marys_elev, vect(basin), fun = mean, na.rm = T, small = T)
+meanelev
+```
+
+Categorical raster (NLCD) summary for the watershed
+```{r extract3, message=FALSE, warning=FALSE, error=FALSE}
+raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
+nlcd <- rast(raster_filepath)
+nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
+basin_nlcd = terra::extract(nlcd, vect(basin))
+
+basin_nlcd$Category <- as.character(basin_nlcd$`NLCD Land Cover Class`)
+basin_nlcd %>%
+  group_by(Category) %>%
+  count()
+```
