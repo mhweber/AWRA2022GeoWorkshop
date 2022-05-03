@@ -86,8 +86,17 @@ Here we'll demonstrate a spatial join operation on gages and the South Santiam m
 SouthSantiam$UM_flowlines <- st_transform(SouthSantiam$UM_flowlines,3157)
 gages_Santiam <- st_join(gages_sf, SouthSantiam$UM_flowlines) # st_intersects is the default
 glimpse(gages_Santiam)
+any(!is.na(gages_Santiam$nhdplus_comid))
 ```
+## Exercise
+Discuss - what did st_join do?  What am I checking in the last line above with !is.na?  The results is FALSE - why is that, and how would we get the result we want (gages that are along the South Santiam river)?  See the next block for the answer.
 
+```{r}
+gages_Santiam <- st_join(gages_sf, SouthSantiam$UM_flowlines, join=st_is_within_distance,dist=100) # st_intersects is the default
+glimpse(gages_Santiam)
+any(!is.na(gages_Santiam$nhdplus_comid))
+```
+The syntax is a little tricky, but the default join method with `st_join` is `st_intersects`, but you can pass other spatial predicates such as `st_crosses`, `st_contains`, `st_nearest`.  Above we simply want to join our gages that are within a close distance, since none of the gages *exactly* intersect the flowlines, so we use `st_is_within_distance`.
 ## Dissolve
 We can perform a spatial dissolve in `sf` using `dplyr` `group_by` and `summarize` functions with an `sf` object.
 What we are doing here is using zip code as our grouping variable with `dplyr`, summarizing area using the `sf` `st_area` function at that grouping level, and mapping the result.
