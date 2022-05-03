@@ -33,9 +33,9 @@ sessionInfo()
 We'll walk through some typical topological operations (spatial subsetting, spatial joins, dissolve) with vector data using `sf` - followed by a couple 'real world' spatial tasks.  We'll be using several of the geometric binary predicates described in `?sf::geos_binary_pred`. We'll also incorporate a bit of raster processing such as map algebra, cropping, and zonal statistics.
 
 ## Spatial Subsetting
-We'll work with gages data from the previous section, and incorporate HUC12 data using services to demonstrate spatial subsetting. We'll demonstrate using the `dataRetrieval` package to query the [Network Linked Data Index](https://labs.waterdata.usgs.gov/about-nldi/index.html) based on the [NLDI Interface] `dataRetrieval` package article by Mike. 
+We'll work with gages data from the previous section, and incorporate NHD streamlines, basins and HUC12 data using web services to demonstrate spatial subsetting. We'll demonstrate using the `dataRetrieval` package to query the [Network Linked Data Index](https://labs.waterdata.usgs.gov/about-nldi/index.html) based on the [NLDI Interface] `dataRetrieval` package article by Mike. 
 
-First bring in gages and if we need to do again, promote to spatial features as we did in the last section of Importing
+First bring in gages and if we need to do again, promote to spatial features as we did in the last section - Importing. Note that when we do a select on specific attribute columns, the geometry column remains - geometry is sticky in `sf`!
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
 data(gages)
 gages_sf <- gages %>%
@@ -75,21 +75,17 @@ gages_sf <- st_transform(gages_sf, 3157)
 
 Index and view!
 ```{r}
-gages_SouthSantiam <- gages_sf[SouthSantiam$basin,]
+gages_basin <- gages_sf[SouthSantiam$basin,]
 
-mapview(gages_SouthSantiam, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
+mapview(gages_basin, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
 ```
 
 ## Spatial Join
-We'll use chained operations to select just a couple columns from both bike_paths and parks, and then we'll do a spatial join operation with `sf`.  Note that when we do a select on just attribute column, the geometry column remains - geometry is sticky in `sf`!
+Here we'll demonstrate a spatial join operation on gages and the South Santiam mainstem we derived in previous steps.  
 ```{r join, message=FALSE, warning=FALSE, error=FALSE}
-library(dplyr)
-bike_paths <- bike_paths %>% 
-  dplyr::select(ROUTE_NAME)
-parks <- parks %>% 
-  dplyr::select(LOCATION_NAME, ZIPCODE,PARK_TYPE)
-parks_bike_paths <- st_join(parks, bike_paths) # st_intersects is the default
-glimpse(parks_bike_paths)
+SouthSantiam$UM_flowlines <- st_transform(SouthSantiam$UM_flowlines,3157)
+gages_Santiam <- st_join(gages_sf, SouthSantiam$UM_flowlines) # st_intersects is the default
+glimpse(gages_Santiam)
 ```
 
 ## Dissolve
