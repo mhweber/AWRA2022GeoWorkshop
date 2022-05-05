@@ -29,15 +29,20 @@ Here is a list of some useful geospatial tools and resources:
   * [Awesome Geospatial](https://github.com/sacridini/Awesome-Geospatial):
     A Long list of geospatial analysis tools.
 * R:
-  * [HydrData](https://mikejohnson51.github.io/HydroData/):
+  * [HydroData](https://mikejohnson51.github.io/HydroData/):
     An open-source tool that is designed
     to help (1) find, (2) get, (3) visualize, and (4) format disparate earth systems data through
     a core language (R).
-  * [EPA R User Group R Spatial Workshop](https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/)
-  * [AWRA 2020 R Spatial Workshop](https://mhweber.github.io/AWRA_2020_R_Spatial/)
-  * [Geocomputation With R](https://geocompr.robinlovelace.net/)
-  * [nhdplusTools](https://usgs-r.github.io/nhdplusTools/)
-  * [r-spatial](https://github.com/r-spatial)
+  * [EPA R User Group R Spatial Workshop](https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/):
+    Workshop material from 2021 EPA R User Group meeting on spatial analysis in R
+  * [AWRA 2020 R Spatial Workshop](https://mhweber.github.io/AWRA_2020_R_Spatial/):
+    Material from 2020 AWRA R Spatial Workshop
+  * [Geocomputation With R](https://geocompr.robinlovelace.net/):
+    One of the best overall resources for working with spatial data in R
+  * [nhdplusTools](https://usgs-r.github.io/nhdplusTools/):
+    R package for manipulation of hydrographic data using the NHDPlus data model
+  * [r-spatial](https://github.com/r-spatial):
+    Suite of fundamental packages for working with spatial data in R
 * Python:
   * [PyNHD](https://docs.hyriver.io/en/latest/readme/pynhd.html):
     Navigate and subset NHDPlus (MR and HR) dataset using web services.
