@@ -28,6 +28,9 @@ dependencies:
   - proplot
   - pytables
   - xarray-spatial
+  - jupyterlab
+  - jupyter-server-mathjax
+  - nbdime
 
   - pip
   - pip:
