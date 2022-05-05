@@ -24,7 +24,7 @@ Now a new environment called `awra2022` is created that can be loaded from your 
 ## Resources
 
 Here is a list of some useful geospatial tools and resources:
-
+ 
 * General:
   * [Awesome Geospatial](https://github.com/sacridini/Awesome-Geospatial):
     A Long list of geospatial analysis tools.
@@ -33,6 +33,11 @@ Here is a list of some useful geospatial tools and resources:
     An open-source tool that is designed
     to help (1) find, (2) get, (3) visualize, and (4) format disparate earth systems data through
     a core language (R).
+  * [EPA R User Group R Spatial Workshop](https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/)
+  * [AWRA 2020 R Spatial Workshop](https://mhweber.github.io/AWRA_2020_R_Spatial/)
+  * [Geocomputation With R](https://geocompr.robinlovelace.net/)
+  * [nhdplusTools](https://usgs-r.github.io/nhdplusTools/)
+  * [r-spatial](https://github.com/r-spatial)
 * Python:
   * [PyNHD](https://docs.hyriver.io/en/latest/readme/pynhd.html):
     Navigate and subset NHDPlus (MR and HR) dataset using web services.
@@ -58,5 +63,5 @@ Here is a list of some useful geospatial tools and resources:
   * [Xarray Spatial](https://xarray-spatial.org/master/index.html):
     Implements common raster analysis functions using `numba` and provides an easy-to-install,
     the easy-to-extend codebase for raster analysis.
-  * [Datashade](https://datashader.org/):
+  * [Datashader](https://datashader.org/):
     Accurately render even the largest data
