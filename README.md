@@ -38,9 +38,11 @@ library(dataRetrieval)
 library(terra)
 library(stars)
 library(remotes)
+library(elevatr)
 install_github("mhweber/awra2020spatial")
 library(awra2020spatial)
-
+install_github("mhweber/Rspatialworkshop")
+library(Rspatialworkshop)
 ```
 ## Resources
 

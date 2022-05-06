@@ -25,11 +25,14 @@ library(dataRetrieval)
 library(mapview)
 library(terra)
 library(stars)
+library(tigris)
+library(tmap)
+library(elevatr)
 library(remotes)
 # install_github("mhweber/awra2020spatial")
 library(awra2020spatial)
-install_github("mikejohnson51/HydroData")
-library(HydroData)
+# install_github("mhweber/Rspatialworkshop")
+library(Rspatialworkshop)
 sessionInfo()
 ```
 
@@ -50,19 +53,19 @@ gages_sf <- gages %>%
   dplyr::select(STATION_NM,LON_NHD, LAT_NHD)
 ```
 
-Next we're going to use `dataRetrieval` to pull in a HUC12 basin for an arbitraty site.  First we'll review available sources:
+Next we're going to use `dataRetrieval` to pull in a basin for an arbitraty site.  First we'll review available sources:
 ```{r}
-get_nldi_sources()
+dataRetrieval::get_nldi_sources()
 ```
 
 The gages data we're using has an NWIS ID - we'll query the NLDI for data association with NWIS gage 14187200 (South Santian in Oregon) and get the upstream NHDPlus mainstem reaches and the associated HUC12 and quickly view in an interactive map using `mapview`
 ```{r}
-findNLDI(nwis = "14187200")
+dataRetrieval::findNLDI(nwis = "14187200")
 ```
 
 What features are associated with this gage? We can specify upstream main channel and HUC12 - what is returned in our object is features associated with upstream flowlines and points representing HUC12 pourpoints
 ```{r}
-SouthSantiam <- findNLDI(nwis = "14187200",
+SouthSantiam <- dataRetrieval::findNLDI(nwis = "14187200",
                          nav = "UM", 
                          find = c("huc12", "flowlines","basin"))
 mapview(SouthSantiam$UM_flowlines, legend=FALSE) + mapview(SouthSantiam$UM_huc12pp, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
@@ -101,6 +104,18 @@ nrow(gages_)
 mapview(gages_basin, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
 ```
 
+Let's look at another example just for fun with some data for the Austin area - the bike paths and parks data in the `awra2020spatial` package. A typical spatial question we might ask of our data is 'what trails go through parks in town?' A great feature of `sf` is it supports spatial indexing:
+```{r subset, message=FALSE, warning=FALSE, error=FALSE, fig.width=11}
+data(parks)
+data(bike_paths)
+
+plot(bike_paths$geoms, col='green', axes=T)
+plot(parks$geoms, col='blue', add=T)
+paths_in_parks <- bike_paths[parks,]
+plot(paths_in_parks$geoms, col='red', lwd = 2, add=T)
+title(main='Bike Paths in Parks in Austin')
+```
+
 ## Spatial Join
 Here we'll demonstrate a spatial join operation on gages and the South Santiam mainstem we derived in previous steps.  
 ```{r join, message=FALSE, warning=FALSE, error=FALSE}
@@ -119,10 +134,9 @@ any(!is.na(gages_Santiam$nhdplus_comid))
 ```
 The syntax is a little tricky, but the default join method with `st_join` is `st_intersects`, but you can pass other spatial predicates such as `st_crosses`, `st_contains`, `st_nearest`.  Above we simply want to join our gages that are within a close distance, since none of the gages *exactly* intersect the flowlines, so we use `st_is_within_distance`.
 
-
 ## Dissolve
-We can perform a spatial dissolve in `sf` using `dplyr` `group_by` and `summarize` functions with an `sf` object.
-What we are doing here is using zip code as our grouping variable with `dplyr`, summarizing area using the `sf` `st_area` function at that grouping level, and mapping the result.
+We can perform a spatial dissolve in `sf` using `dplyr` `group_by` and `summarize` functions with an `sf` object!
+We'll use data for Austin again to run a dissolve to get from block group to tract level
 ```{r dissolve, message=FALSE, warning=FALSE, error=FALSE}
 library(ggplot2)
 parks$AREA <- st_area(parks)
@@ -135,225 +149,298 @@ parks_zip <- parks %>%
 parks_zip
 ```
 
-## Extract
-Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
+## Raster data
 
-```{r}
-nlcd = getAOI(clip = list("Sweet Home")) %>% findNLDC(2006, 'landcover')
-```
+Support for gridded data in R in recent year has been best implemented with the `raster` package by Robert Hijmans. The `raster` package allows you to:
 
-```{r}
-raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
-nlcd <- rast(raster_filepath)
-nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
-basin_nlcd = terra::extract(nlcd, vect(basin))
-```
+* read and write almost any commonly used raster data format using `rgdal`
+* perform typical raster processing operations such as resampling, projecting, filtering, raster math, etc.
+* work with files on disk that are too big to read into memory in R
+* run operations quickly since the package relies on back-end C code 
 
-Extract of elevation for station points
-```{r extract, message=FALSE, warning=FALSE, error=FALSE}
-library(FedData)
+The [terra](https://github.com/rspatial/terra) package is the replacement for the `raster` package and has now superceeded it and we will largely focus on `terra` here. Examples here draw from both [Spatial Data Science with R and terra](https://rspatial.org/terra/index.html) and [An introduction to terra in Geocomputation with R](https://geocompr.robinlovelace.net/spatial-class.html#raster-data).  Use help("terra-package") in the console for full list of available `terra` functions and comparison to / changes from `raster`.
+
+Raster representation is currently in flux a bit in R now with three choices of packages - `raster` and now `terra` which we've mentioned, as well as [stars](https://r-spatial.github.io/stars/index.html) (spatiotemporal tidy arrays with R).
+
+To familiarize ourselves with the `terra` package, let's create an empty `SpatRaster` object - in order to do this we have to:
+* define the matrix (rows and columns) 
+* define the spatial bounding box
+
+Note that typically we would be reading raster data in from a file rather than creating a raster from scratch. Run through code steps below to familiarize yourself with constructing a `RasterLayer` from scratch - you can provide a different bounding box for an area of your choosing.
+
+```{r raster-layer, message=FALSE, warning=FALSE, error=FALSE}
 library(terra)
-# The data access for elevation using FedData slow, so I've commented out and saved the data locally...
+myrast <- rast(ncol=10, nrow = 10, xmax=-116,xmin=-126,ymin=42,ymax=46)
+# str(myrast)
+isS4(myrast)
+```
 
-# elev <- get_ned(template = as(basin,'Spatial'),label='Marys River')
-# marys_elev <- terra::crop(elev, basin)
-# terra::writeRaster(marys_elev, 'C:/Users/mweber/Temp/marys_elev.tif')
-marys_elev <- terra::rast('C:/Users/mweber/Temp/marys_elev.tif')
+`terra` uses an `S4` slot structure with a `SpatRaster` object. Simply typing the name of the `SpatRaster` gives a summary of the object at the console.
+```{r raster-layer2, message=FALSE, warning=FALSE, error=FALSE}
+myrast
+```
 
-st_crs(stations_sf)$wkt == crs(marys_elev)
-marys_elev <- terra::project(marys_elev, st_crs(stations_sf)$wkt)
-stations_sf$elevation <- terra::extract(marys_elev, vect(stations_sf))
+`terra` has dedicated functions addressing each of these components: 
+  - `dim(my_rast)` returns the number of rows, columns and layers
+  - `ncell()` returns the number of cells (pixels)
+  - `res()` returns the spatial resolution
+  - `ext()` returns spatial extent
+  - `crs()` returns the coordinate reference system
+
+### Exercise
+Exploring raster objects 
+
+1. what is the minimal data required to define a `SpatRaster`? 
+2. What is the CRS of our `SpatRaster`? 
+3. How do we pull out just the CRS for our r `SpatRaster`? 
+4. Building on this, what is the code to pull out just our xmin value in our extent, or bounding box?
+
+### Solution
+
+1. number columns, number rows, and extent - the `raster` package however will fill in defaults if values aren't provided
+```{r raster-emptyexample, message=FALSE, warning=FALSE, error=FALSE}
+t <- rast()
+t
+```
+
+2. We didn't provide one - `terra` uses default `crs` of WGS84 if you don't provide a `crs`
+
+3. 
+```{r message=FALSE, warning=FALSE, error=FALSE}
+crs(myrast)
+```
+
+4. 
+```{r message=FALSE, warning=FALSE, error=FALSE}
+ext(myrast)
+# just grab xmin
+ext(myrast)[1]
+# we can see that extent is actually a c++ object in the ptr slot of our spatRaster object
+# str(myrast)
+# names(myrast@ptr)
+myrast@ptr$extent
+```
+
+### Manipulating `raster` objects
+So far we just have a container with no values (try plotting what we have so far) - let's provide values to the cells using the runif function to derive random values from the uniform distribution
+```{r runif, message=FALSE, warning=FALSE, error=FALSE}
+#show we have no values
+hasValues(myrast)
+values(myrast) <- runif(n=ncell(myrast))
+myrast
+```
+
+An important point to make here is that objects in the `terra` package (and previously in `raster`) can be either in memory or on disk - note the value for our `spatRaster` r of 'source'.  If this were a large raster on disk, the value would be the path to the file on disk.
+
+```{r inmemory, message=FALSE, warning=FALSE, error=FALSE}
+myrast@ptr$inMemory
+hasValues(myrast)
+myrast@ptr$nlyr() # we just have one layer in our object
+# or
+nlyr(myrast)
+```
+
+`terra` also provides plot method for it's classes:
+```{r plot raster, message=FALSE, warning=FALSE, error=FALSE}
+plot(myrast)
+```
+
+We can also overwrite the cell values for our raster:
+```{r new_values_raster, message=FALSE, warning=FALSE, error=FALSE}
+values(myrast) <- 1:ncell(myrast)
+values(myrast)[1:15]
+```
+
+You can access raster values via direct indexing or line, column indexing - take a minute to see how this works using raster r we just created - the syntax is:
+```r
+myrast[i]
+myrast[line, column]
+```
+How is `terra` data storage unlike a `matrix` in R?  You can create a `matrix` with same dimensions and values and compare if you want:
+```{r matrix_raster, message=FALSE, warning=FALSE, error=FALSE}
+m <- matrix (1:100, nrow=10, ncol=10)
+m[1,10]
+myrast[1,10]
+myrast[10]
+```
+
+
+### Plotting rasters and vectors with tmap
+Bring in boundary and elevation of Crater Lake NP (datasets in `Rspatialworkshop` package) and plot with tmap
+```{r tmap_raster_plot, message=FALSE, warning=FALSE, error=FALSE}
+data(CraterLake)
+raster_filepath <- system.file("extdata", "elevation.tif", package = "Rspatialworkshop")
+elevation <- rast(raster_filepath)
+map_crlk <- tm_shape(CraterLake) + tm_polygons(lwd = 2)
+map_crlkel = map_crlk +
+  tm_shape(elevation) + tm_raster(alpha = 0.7,palette = terrain.colors(12)) + tm_layout(legend.position = c("left","bottom"),
+          legend.width = 1)
+map_crlkel
+```
+
+### Raster data with `stars`
+
+`stars` works with and stands for spatio-temporal arrays and can deal with more complex data types than either `raster` or `terra` such as rotated grids.
+
+`stars` integrates with `sf` and many sf functions have methods for `stars` objects (i.e. `st_bbox` and `st_transform`) - this makes sense since they are both written by Edzer Pebesma. `terra` unfortunately has poor / no integration with `sf` - this is a big issue for me personally and I will likely look to `stars` long-term for my raster processing.
+
+#### Read a satellite image
+Basic example shown in [stars vignette](https://r-spatial.github.io/stars/articles/stars1.html) - using the 30m bands of a Landsat-7 image that comes with the `stars` package:
+```{r stars_1, message=FALSE, warning=FALSE, error=FALSE}
+tif = system.file("tif/L7_ETMs.tif", package = "stars")
+ls7 = read_stars(tif)
+plot(ls7, axes = TRUE)
+```
+
+ls7 (landsat7) is an object with 3 dimensions (x,y and band) and 1 attribute
+```{r stars_2, message=FALSE, warning=FALSE, error=FALSE}
+ls7
+```
+
+Note when we plotted above that the `plot` method with `stars` uses histogram stretching across all bands - we can also do stretching for each band indivially:
+```{r stars_3, message=FALSE, warning=FALSE, error=FALSE}
+plot(ls7, axes = TRUE, join_zlim = FALSE)
+```
+
+`stars` uses [tidyverse methods for spatio-temporal arrays](https://r-spatial.github.io/stars/articles/stars3.html) - an example of this is pulling out one band of an image using `slice`
+```{r stars_4, message=FALSE, warning=FALSE, error=FALSE}
+ls7 %>% dplyr::slice(band, 6) -> band6
+band6
+```
+
+This gives us a lower-dimensional array of just band 6 from the Landsat7 image.
+
+### Projecting
+For spatial operations in R, raster or vector, we always need to make sure objects are in an appropriate CRS and in the same CRS as one another.
+
+We'll use the elevation data and Crater Lake polygon feature in the `Rspatialworkshop` package for this example.
+```{r projection, message=FALSE, warning=FALSE, error=FALSE}
+library(Rspatialworkshop)
+data(CraterLake)
+raster_filepath <- system.file("extdata", "elevation.tif", package = "Rspatialworkshop")
+elevation <- rast(raster_filepath)
+```
+
+#### Exercise
+1. Find the projection of both the Crater Lake spatial polygon feature and the elevation raster
+2. Are they the same? Should we project one to the other, or apply a new projection?
+
+#### Solution
+1. Check the CRS of each feature and test for equality
+```{r projection2, message=FALSE, warning=FALSE, error=FALSE}
+crs(elevation)
+st_crs(CraterLake)
+st_crs(CraterLake) == crs(elevation)
+st_crs(CraterLake)$wkt == crs(elevation)
+```
+2.  They share the same EPSG code, but are parameterized slightly differently for each - the `crs` function in `terra` does not include the `input` list item that `st_crs` in `sf` does - they are the same though as demonstrated when specifying the `wkt` item only from `st_crs(CraterLake)`
+3. Each feature is in WGS84, an unprojected CRS - for most operations, we would prefer to have them in a projected CRS
+
+#### Exercise
+Find an appropriate area-preserving projection using [Projection Wizard](https://projectionwizard.org/#) or [spatialreference.org](https://spatialreference.org/) or any means you prefer and project both Crater Lake and elevation to this CRS.
+
+#### Solution
+Here I'll apply a custom Transverse Mercator I found the WKT representation for using Projection Wizard.  Another good projection would be [UTM zone 10N](https://spatialreference.org/ref/epsg/3157/) or [UTM zone 11N](https://spatialreference.org/ref/epsg/2153/)
+```{r projection3, message=FALSE, warning=FALSE, error=FALSE}
+tranvmerc <- 'PROJCS["ProjWiz_Custom_Transverse_Mercator", GEOGCS["GCS_WGS_1984", DATUM["D_WGS_1984", SPHEROID["WGS_1984",6378137.0,298.257223563]], PRIMEM["Greenwich",0.0], UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-483.2226562],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]'
+elevation_tm <- project(elevation, tranvmerc, method = "bilinear")
+crs(elevation_tm)
+CraterLake_tm <- st_transform(CraterLake,tranvmerc)
+```
+
+### Cropping
+We can crop our elevation raster to just the bounding box of Crater Lake - using mask, we can clip it to the actual polygon boundary
+
+Let's see what elevation and Crater Lake boundary look like prior to cropping and masking
+```{r crop, message=FALSE, warning=FALSE, error=FALSE}
+plot(elevation_tm)
+plot(CraterLake_tm, add=TRUE, col=NA, border='blue')
+```
+
+Here we use `crop` to crop the elevation raster to the bounding box of our Crater Lake polygon feature
+```{r crop2, message=FALSE, warning=FALSE, error=FALSE}
+elev_crop = terra::crop(elevation_tm, vect(CraterLake_tm))
+plot(elev_crop)
+plot(CraterLake_tm, add=TRUE, col=NA, border='blue')
+```
+
+And finally we can use `mask` to mask the raster to just inside the polygon outline of Crater Lake National Park.  
+
+**Note** - if you have a large raster, it makes a HUGE difference to use crop first, then mask - mask is a much more computationally intensive operation so it will pay off to crop first then mask.
+
+
+```{r mask, message=FALSE, warning=FALSE, error=FALSE}
+elev_mask = terra::mask(elevation_tm, vect(CraterLake_tm))
+plot(elev_mask)
+plot(CraterLake_tm, add=TRUE, col=NA, border='blue')
+```
+
+### Map Algebra
+We can divide map algebra into a couple of categories:
+
+1. Local - per-cell operations
+    a. raster calculator
+    b. replacing values
+    c. reclassifying
+    d. calculating indices
+2. Focal (neighborhood operations) - summarizing output cell value as the result of a window (such as a3 x 3 input cell block)
+Zonal operations - summarizing raster values for some zones (either another raster or a vector feature)
+Global - summarizing values over entire raster(s)
+
+#### Local Operations
+Say we want to convert our elevation raster from meters to feet:
+```{r local, message=FALSE, warning=FALSE, error=FALSE}
+elev_feet = elevation_tm * 3.28084
+elev_feet
+```
+
+Our max value is 8890, which makes sense - the high point in Crater Lake National Park is Mount Scott at 8,929'.
+
+What if we want to make elevation bins, or classify some elevations as NA with our elevation raster?
+```{r local2, message=FALSE, warning=FALSE, error=FALSE}
+reclass <- matrix(c(0, 500, 1, 500, 1000, 2, 1000, 1500, 3, 1500 , 2000, 4, 2000, 2700, 5), ncol = 3, byrow = TRUE)
+reclass
+elev_recl = classify(elevation_tm, rcl = reclass)
+plot(elevation_tm)
+plot(elev_recl)
+```
+
+```{r local3, message=FALSE, warning=FALSE, error=FALSE}
+elev_new = elevation_tm
+elev_new[elev_new > 2000] = NA
+plot(elev_new)
+```
+
+#### Focal Operations
+A simple focal window operation
+```{r focal, message=FALSE, warning=FALSE, error=FALSE}
+elev_focal_mean = terra::focal(elevation_tm, 
+                   w = matrix(1, nrow = 25, ncol = 25), 
+                   fun = mean)
+plot(elev_focal_mean)
+```
+
+#### Global Operations
+```{r global, message=FALSE, warning=FALSE, error=FALSE}
+terra::global(elev_mask, fun="mean", na.rm=TRUE)
+terra::global(elev_mask, fun="sum", na.rm=TRUE)
+```
+
+#### Extract
+Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+elevation <- get_elev_raster(as_Spatial(SouthSantiam$basin), z = 9)
+elevation
+gages <- st_transform(gages, projection(elevation))
+gages$elevation <- raster::extract(elevation, as_Spatial(gages))
 stations_sf$elevation
 ```
 
 Elevation summary for the watershed - doing zonal statistics using a vector feature zone on a raster
 ```{r extract2, message=FALSE, warning=FALSE, error=FALSE}
 # project both our raster and polygon data
-library(terra)
-basin <- st_transform(basin, 5070)
-marys_elev <- project(marys_elev, st_crs(basin)$wkt, method = "bilinear")
-
-meanelev <- terra::extract(marys_elev, vect(basin), fun = mean, na.rm = T, small = T)
-meanelev
-```
-
-Categorical raster (NLCD) summary for the watershed
-```{r extract3, message=FALSE, warning=FALSE, error=FALSE}
-raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
-nlcd <- rast(raster_filepath)
-nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
-basin_nlcd = terra::extract(nlcd, vect(basin))
-
-basin_nlcd$Category <- as.character(basin_nlcd$`NLCD Land Cover Class`)
-basin_nlcd %>%
-  group_by(Category) %>%
-  count()
-```
-
-
-## Spatial Overlap
-Here's a fun example using material posted by Nicholas Tierney [here](https://www.njtierney.com/post/2021/08/21/how-much-one-shapefile-overlaps-another/) that he put together based on [this Stack Overflow discussion](https://gis.stackexchange.com/questions/362466/calculate-percentage-overlap-of-2-sets-of-polygons-in-r).
-
-First we'll extract the Portland Oregon metropolitan area using the `tidycensus` and `tigris` packages
-```{r overlap, message=FALSE, warning=FALSE, error=FALSE}
-library(ggplot2)
-library(tidycensus)
-library(tidyverse)
-library(tigris)
-
-tracts <- get_acs(geography = "tract", variables = "DP04_0134", 
-                state = "OR", geometry = TRUE, progress_bar = FALSE)
-
-pdx <- core_based_statistical_areas(cb = TRUE, progress_bar = FALSE) %>%
-  filter(GEOID == "38900")
-ggplot() + 
-  geom_sf(data = pdx,
-          fill = "forestgreen") 
-```
-
-#### Next we'll create a dummy spatial polygon file to compare area with using the `rmapshaper` package to simplify the border of the PDX metropolitan polygon
-```{r overlap2, message=FALSE, warning=FALSE, error=FALSE}
-library(rmapshaper) 
-pdx_simplified <- pdx %>% 
-  ms_simplify(keep = 0.01)
-```
-
-#### Then we can overlay polygons in ggplot to see how similar they are, showing the original census PDX metropolitan area in green, and new simplified polygon in red
-```{r overlap3, message=FALSE, warning=FALSE, error=FALSE}
-ggplot() + 
-  geom_sf(data = pdx,
-          fill = "forestgreen", alpha = 0.5) + 
-  geom_sf(data = pdx_simplified, 
-          fill = "firebrick",
-          alpha = 0.5)
-```
-
-#### Now that we have an original and simplified polygon to compare, the process we want to use is:
-
-- Calculate original metro area polygon area
-- Calculate the intersection of these two areas - original and simplified (st_intersection)
-- Calculate that area (st_area)
-- Then only keep the relevant data again
-
-We'll run the steps then combine into a function
-```{r overlap5, message=FALSE, warning=FALSE, error=FALSE, eval=FALSE}
-original_area <- pdx %>% 
-    mutate(original_area = st_area(.)) %>% 
-    dplyr::select(NAME, original_area) %>% 
-    st_drop_geometry()
-
-intersection_area <- st_intersection(pdx, pdx_simplified) %>% 
-    mutate(intersect_area = st_area(.)) %>% 
-    dplyr::select(NAME, intersect_area) %>% 
-    st_drop_geometry()
-```
-
-#### Exercise
-This step should have given you an error -THIS IS VERY COMMON WORKING WITH SPATIAL DATA IN R AND USING `sf`.
-
-#### Solution
-```{r overlap6, message=FALSE, warning=FALSE, error=FALSE}
-pdx_simplified <- st_make_valid(pdx_simplified)
-pdx <- st_make_valid(pdx)
-
-original_area <- pdx %>% 
-    mutate(original_area = st_area(.)) %>% 
-    dplyr::select(NAME, original_area) %>% 
-    st_drop_geometry()
-    
-intersection_area <- st_intersection(pdx, pdx_simplified) %>% 
-    mutate(intersect_area = st_area(.)) %>% 
-    dplyr::select(NAME, intersect_area) %>% 
-    st_drop_geometry()
-
-# show the area of intersection
-intersection_area
-
-# show the proportion of overlap
-intersection_area %>% 
-    left_join(original_area, 
-              by = "NAME") %>% 
-    mutate(orig = as.numeric(original_area),
-           new = as.numeric(intersect_area),
-           proportion = (new / orig) * 100)
-```
-
-### Exercise
-Why did I use `as.numeric` in the `mutate` statement above?
- 
-#### Solution
-`sf` will calculate area or length for features as `units` - which is convenient and forces you to be up front about units used, but you when you do calculations with attributes stored as units the units are retained - which is often not what is desired. You can see this behavior using `str(st_area(pdx))`.
-
-All steps rolled into a function
-```{r overlap7, message=FALSE, warning=FALSE, error=FALSE}
-calculate_spatial_overlap <-
-  function(shape_new,shape_old,     shared_column_name) {
-    intersection_area <- st_intersection(shape_new, shape_old) %>% 
-    mutate(intersect_area = st_area(.)) %>% 
-    dplyr::select(shared_column_name, intersect_area) %>% 
-    st_drop_geometry()
-  
-  # Create a fresh area variable
-  shape_old_areas <- shape_old %>% 
-    mutate(original_area = st_area(.)) %>% 
-    dplyr::select(original_area, shared_column_name) %>% 
-    st_drop_geometry()
-  
-  intersection_area %>% 
-    left_join(shape_old_areas, 
-              by = shared_column_name) %>% 
-    mutate(orig = as.numeric(original_area),
-           new = as.numeric(intersect_area),
-           proportion = (new / orig) * 100)
-  
-}
-
-calculate_spatial_overlap(pdx, pdx_simplified, shared_column_name='NAME')
-```
-
-## Deriving data for a sites or a watershed
-
-### Extract using sites
-First we'll use `dataRetrieval` to find NWIS sites in Benton County Oregon
-```{r wshds, message=FALSE, warning=FALSE, error=FALSE, fig.width=8}
-library(mapview)
-library(dataRetrieval)
-library(sf)
-Benton_Stations <- readNWISdata(stateCd="Oregon", countyCd="Benton")
-siteInfo <- attr(Benton_Stations , "siteInfo") 
-stations_sf = st_as_sf(siteInfo, coords = c("dec_lon_va", "dec_lat_va"), crs = 4269,agr = "constant")
-mapview(stations_sf)
-```
-
-#### Exercise
-What is the `agr` argument to `st_as_sf` in code chunk above?
-
-#### Solution
-Try `help(st_sf)` and look at details, and try `demo(nc)` to see a worked example.  Basically, `agr` specifies the attribute-geometry relationship - does the attribute represent a constant value, an aggregation over the geometry, or an identity that uniquely identifies the geometry.  For the most part I haven't paid too much attention to this parameter but similar to `units`, it can help with constructing a more self-descriptive spatial object.
-
-### River reaches and basin
-Next we'll use `nhdplusTools` to get the river reaches for the Mary's River in Benton county, get the watershed Mary's River watershed, and then spatially subset the stations to the watershed
-```{r wshds2, message=FALSE, warning=FALSE, error=FALSE}
-library(nhdplusTools)
-start_comid = 23762881
-nldi_feature <- list(featureSource = "comid", featureID = start_comid)
-
-flowline_nldi <- navigate_nldi(nldi_feature, mode = "UT", data_source = "flowlines", distance=5000)
-
-basin <- get_nldi_basin(nldi_feature = nldi_feature)
-```
-
-### StreamCat data for watershed 
-[StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-dataset-0) provides pre-compiled watershed metrics for every NHDPlus stream reach in the CONUS. Note that the [StreamCatTools R package](https://github.com/USEPA/StreamCatTools) is in alpha development and will only work behind the EPA firewall at the moment (must be connected to VPN to use)
-```{r wshds3, message=FALSE, warning=FALSE, error=FALSE, fig.width=8}
-# install_github('USEPA/StreamCatTools')
-library(StreamCatTools)
-# get NHDPlus COMIDS for flowlines of the Mary's River - some machinations on our data from NLDI using nhdplusTools...
-comids <- c(flowline_nldi$origin$comid,flowline_nldi$UT_flowlines$nhdplus_comid)
-comids <- paste(comids,collapse=",",sep="")
-
-df <- sc_get_data(metric='PctImp2011', aoi='catchment', comid=comids)
-flowline_nldi$UT_flowlines$PCTIMP2011CAT <- df$PCTIMP2011CAT[match(flowline_nldi$UT_flowlines$nhdplus_comid, df$COMID)]
-mapview(flowline_nldi$UT_flowlines, zcol = "PCTIMP2011CAT", legend = TRUE) + mapview(basin, alpha.regions=.07)
+SouthSantiamBasin <- st_transform(SouthSantiam$basin, projection(elevation))
+SouthSantiamBasin$MeanElevation <- raster::extract(elevation, SouthSantiamBasin, fun = mean, na.rm = T, small = T)
+print(SouthSantiamBasin$MeanElevation)
 ```
 
