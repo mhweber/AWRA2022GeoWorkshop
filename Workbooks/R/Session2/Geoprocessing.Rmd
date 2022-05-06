@@ -1,5 +1,7 @@
 ---
 title: "Geoprocessing Spatial Data"
+author: "Marc Weber"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_notebook:
     toc: yes
@@ -26,10 +28,11 @@ library(stars)
 library(remotes)
 # install_github("mhweber/awra2020spatial")
 library(awra2020spatial)
+install_github("mikejohnson51/HydroData")
+library(HydroData)
 sessionInfo()
 ```
 
-# Geoprocessing
 ## Lesson Goals
 
 We'll walk through some typical topological operations (spatial subsetting, spatial joins, dissolve) with vector data using `sf` - followed by a couple 'real world' spatial tasks.  We'll be using several of the geometric binary predicates described in `?sf::geos_binary_pred`. We'll also incorporate a bit of raster processing such as map algebra, cropping, and zonal statistics.
@@ -136,12 +139,7 @@ parks_zip
 Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
 
 ```{r}
-start_comid = 23762881
-nldi_feature <- list(featureSource = "comid", featureID = start_comid)
-
-flowline_nldi <- navigate_nldi(nldi_feature, mode = "UT", data_source = "flowlines", distance=5000)
-
-basin <- get_nldi_basin(nldi_feature = nldi_feature)
+nlcd = getAOI(clip = list("Sweet Home")) %>% findNLDC(2006, 'landcover')
 ```
 
 ```{r}

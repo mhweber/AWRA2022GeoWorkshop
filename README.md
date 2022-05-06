@@ -21,6 +21,27 @@ mamba env create -f environment.yml
 
 Now a new environment called `awra2022` is created that can be loaded from your IDE.
 
+## R libraries needed for workshop
+For this workshop, you will need the following R libraries installed:
+
+```r
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(knitr)
+library(rnaturalearth)
+library(stringr)
+library(osmdata)
+library(mapview)
+library(dataRetrieval)
+library(terra)
+library(stars)
+library(remotes)
+install_github("mhweber/awra2020spatial")
+library(awra2020spatial)
+
+```
 ## Resources
 
 Here is a list of some useful geospatial tools and resources:

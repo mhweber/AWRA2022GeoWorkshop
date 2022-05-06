@@ -1,8 +1,18 @@
 ---
-title: "Untitled"
+title: "Impact of Dams on Streamflow"
 author: "Mike Johnson"
-date: "5/6/2022"
-output: html_document
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    toc_depth: 4
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
 ---
 
 # For notes
@@ -18,13 +28,11 @@ output: html_document
     - I/O from APIs and remote files
     - Spatial predicates/filters
 
-# Impact of Dams on Streamflow
-
 ## AWRA 2022
 
 ### R and Python Tools for Geospatial Water Applications
 
-The primary goal of this hands-on tutorial is to introduce a handful of geospatial web services for conducting scientific studies. For this purpose, we're going to take a look at the effects of building dams on streamflows. Here are some example peer-reviewed papers on this topic.
+The primary goal of this hands-on tutorial is to introduce a handful of geospatial web services for conducting scientific studies. For this purpose, we're going to take a look at the effects of building dams on streamflow. Here are some example peer-reviewed papers on this topic.
 
 - https://doi.org/10.5194/hess-17-3189-2013
 - https://doi.org/10.1002/2017WR020871
@@ -58,10 +66,14 @@ ggplot() +
   theme_light()
 ```
 
-
+Next we query NWIS data using the `dataRetrieval` package, specifying:
+  -state
+  -data range
+  -data type
+  -data cd
 ```{r}
 # Query data
-sites = whatNWISdata(
+sites = dataRetrieval::whatNWISdata(
   # State to search
   stateCd = state,
   # Goal date range
@@ -74,16 +86,16 @@ sites = whatNWISdata(
 glimpse(sites)
 ```
 
-We can see that there are `r nrow(sites)` streamflow gauge stations in Texas that fit our criteria. Now, let's filter these stations a step further to include only those stations that have around 30 years of daily streamflow data with drainage area of larger than 10 km^2^ that have been impacted by human activies.
+We can see that there are `r nrow(sites)` streamflow gauge stations in Texas that fit our criteria. Now, let's filter these stations a step further to include only those stations that have around 30 years of daily streamflow data with drainage area of larger than 10 km^2^ that have been impacted by human activities.
 
 For this we remotely access the gages 2 data set and join it to the above data.
 
 ```{r}
-sites = read_sf('/vsizip/{/vsicurl/https://water.usgs.gov/GIS/dsdl/gagesII_9322_point_shapefile.zip}/gagesII_9322_sept30_2011.shp') |> 
-  # Find those that the reference classifciation is NA and the draiange area is greater then 10
-  filter(is.na(HCDN_2009), DRAIN_SQKM > 10)  |> 
+sites = read_sf('/vsizip/{/vsicurl/https://water.usgs.gov/GIS/dsdl/gagesII_9322_point_shapefile.zip}/gagesII_9322_sept30_2011.shp')  %>%  
+  # Find those that the reference classifciation is NA and the drainage area is greater then 10
+  filter(is.na(HCDN_2009), DRAIN_SQKM > 10)   %>%  
   # Join to the site IDs returned from NWIS
-  inner_join(sites, by = c("STAID" = "site_no")) |> 
+  inner_join(sites, by = c("STAID" = "site_no")) %>% 
   # Find those that give a daily mean (stat_cd), and have at least 30 years of data
   # Send to a projected transformation
   st_transform(5070)
@@ -113,9 +125,9 @@ dams = read.csv('https://nid.usace.army.mil/api/nation/csv', skip = 1) %>%
   # Find those within year range, the state of Texas, and of a given size 
   filter(between(Year.Completed, 1995, 2005), State == "Texas", NID.Storage..Acre.Ft. > 1000) %>%
   # convert table to sf object
-  sf::st_as_sf(coords = c('Longitude', 'Latitude'), crs = 4326) |> 
+  sf::st_as_sf(coords = c('Longitude', 'Latitude'), crs = 4326)  %>%  
   # Keep only relevant columns 
-  select(NID.ID, NID.Storage..Acre.Ft., Year.Completed) |> 
+  select(NID.ID, NID.Storage..Acre.Ft., Year.Completed) %>% 
   # Send to a projected transformation 
   st_transform(5070)
 
@@ -152,7 +164,7 @@ dams2 = st_filter( dams, sites,
 # Filter the dams to only inlcude those within 10000 m of a site
 sites2 = st_filter( sites, dams,
                     .predicate = st_is_within_distance,
-                    dist = 10000) |> 
+                    dist = 10000)  %>%  
   # Only inlcude relevant columns for readabilty
   select(STAID, DRAIN_SQKM)
 
@@ -185,7 +197,7 @@ for(i in 1:nrow(dams2)){
   pt = st_coordinates(st_transform(dams2[i,], 4326))
   
   # Find the COMID associated with that POINT, and add to the DAMS data.frame/sf
-  dams2$dam_comid[i] = findNLDI(location = pt)$comid
+  dams2$dam_comid[i] = dataRetrieval::findNLDI(location = pt)$comid
 }
 
 # View Data
@@ -193,7 +205,7 @@ glimpse(dams2)
 ```
 
 ```{r}
-# Covert dams to data.frame, and index by the ID of the site closest to that dam
+# Convert dams to data.frame, and index by the ID of the site closest to that dam
 nearest = st_drop_geometry(dams2)[st_nearest_feature(sites2, dams2),]
 
 # merge the columns of sites and nearest
@@ -204,21 +216,21 @@ glimpse(joined)
 
 for(i in 1:nrow(joined)){
   # Use the NLDI to find the upstream COMID (w/in 10km) of each gage site
-  tmp = findNLDI(nwis = joined$STAID[i], nav = "UT", distance_km = 10)
+  tmp = dataRetrieval::findNLDI(nwis = joined$STAID[i], nav = "UT", distance_km = 10)
 
   # Check if the linked dam COMID is in the uptream COMIDs for each gage
   joined$upstream[i] = joined$dam_comid[i] %in% tmp$UT_flowlines$nhdplus_comid
 } 
 
 # Only keep those in which the large dam is upstream
-joined = filter(joined, upstream) 
+joined = dplyr::filter(joined, upstream) 
 
 glimpse(joined)
 ```
 
 
 ```{r}
-tmp = findNLDI(nwis = joined$STAID[1],
+tmp = dataRetrieval::findNLDI(nwis = joined$STAID[1],
                nav = "UT",
                find= c('flowlines', "basin"))
 
@@ -231,11 +243,11 @@ ggplot() +
 
 
 ```{r}
-flows = readNWISdv(siteNumbers = joined$STAID,
-                   parameterCd = "00060") |> 
-  renameNWISColumns() |> 
-  mutate(Y = as.numeric(format(Date, "%Y"))) |> 
-  group_by(Y) |> 
+flows = dataRetrieval::readNWISdv(siteNumbers = joined$STAID,
+                   parameterCd = "00060")  %>%  
+  renameNWISColumns() %>% 
+  mutate(Y = as.numeric(format(Date, "%Y")))  %>% 
+  group_by(Y)  %>%  
   summarize(meanQ  = mean(Flow))
 
 
@@ -252,12 +264,12 @@ r = rast("/vsicurl/https://storage.googleapis.com/feddata-r/nlcd/2019_Land_Cover
 
 vAOI = project(vect(tmp$basin), crs(r))
 
-lc = crop(r, vAOI, snap = "out") |> 
+lc = crop(r, vAOI, snap = "out") %>% 
   mask(vAOI)
 
 
-freq(lc) |> 
-  arrange(-count) |> 
+freq(lc) %>% 
+  arrange(-count)  %>%  
   mutate(sqkm = count * prod(res(lc)) /1e6)
 ```
 # 

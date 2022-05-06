@@ -1,14 +1,17 @@
 ---
 title: "Importing Spatial Data"
+author: "Marc Weber"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  html_document:
+    toc: yes
+    keep_md: true
+    toc_depth: '4'
+    df_print: paged
   html_notebook:
     toc: yes
     toc_float: yes
     toc_depth: 4
-  html_document:
-    toc: yes
-    toc_depth: '4'
-    df_print: paged
 editor_options:
   chunk_output_type: inline
 ---
