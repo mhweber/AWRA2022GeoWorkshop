@@ -21,6 +21,8 @@ library(readr)
 library(knitr)
 library(dataRetrieval)
 library(mapview)
+library(terra)
+library(stars)
 library(remotes)
 # install_github("mhweber/awra2020spatial")
 library(awra2020spatial)
@@ -37,10 +39,12 @@ We'll work with gages data from the previous section, and incorporate NHD stream
 
 First bring in gages and if we need to do again, promote to spatial features as we did in the last section - Importing. Note that when we do a select on specific attribute columns, the geometry column remains - geometry is sticky in `sf`!
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
-data(gages)
+gages <- read_csv(system.file("extdata", "Gages_flowdata.csv", package = "awra2020spatial"))
+gages <- gages %>% 
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs=4269)
 gages_sf <- gages %>%
-  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269, remove = FALSE) %>%
-  dplyr::select(STATION_NM,LON_SITE, LAT_SITE)
+  st_as_sf(coords = c("LON_NHD", "LAT_NHD"), crs = 4269, remove = FALSE) %>%
+  dplyr::select(STATION_NM,LON_NHD, LAT_NHD)
 ```
 
 Next we're going to use `dataRetrieval` to pull in a HUC12 basin for an arbitraty site.  First we'll review available sources:
@@ -73,10 +77,24 @@ SouthSantiam$basin <- st_transform(SouthSantiam$basin, 3157)
 gages_sf <- st_transform(gages_sf, 3157)
 ```
 
-Index and view!
+We can use simple bracket notation with `sf` to do a spatial subset, or we can use `st_filter` - we can demonstrate that both do the same thing:
+
+We start out with 2771 gages in the `gages` dataset
+```{r}
+nrow(gages_sf)
+```
+Subsetting to the South Santiam basin gives us 13 gages within the basin
 ```{r}
 gages_basin <- gages_sf[SouthSantiam$basin,]
+nrow(gages_basin)
+```
 
+```{r}
+gages_basin <- st_filter(gages_sf, SouthSantiam$basin)
+nrow(gages_)
+```
+
+```{r}
 mapview(gages_basin, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
 ```
 
@@ -97,6 +115,8 @@ glimpse(gages_Santiam)
 any(!is.na(gages_Santiam$nhdplus_comid))
 ```
 The syntax is a little tricky, but the default join method with `st_join` is `st_intersects`, but you can pass other spatial predicates such as `st_crosses`, `st_contains`, `st_nearest`.  Above we simply want to join our gages that are within a close distance, since none of the gages *exactly* intersect the flowlines, so we use `st_is_within_distance`.
+
+
 ## Dissolve
 We can perform a spatial dissolve in `sf` using `dplyr` `group_by` and `summarize` functions with an `sf` object.
 What we are doing here is using zip code as our grouping variable with `dplyr`, summarizing area using the `sf` `st_area` function at that grouping level, and mapping the result.
@@ -111,6 +131,67 @@ parks_zip <- parks %>%
   theme_bw()
 parks_zip
 ```
+
+## Extract
+Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
+
+```{r}
+start_comid = 23762881
+nldi_feature <- list(featureSource = "comid", featureID = start_comid)
+
+flowline_nldi <- navigate_nldi(nldi_feature, mode = "UT", data_source = "flowlines", distance=5000)
+
+basin <- get_nldi_basin(nldi_feature = nldi_feature)
+```
+
+```{r}
+raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
+nlcd <- rast(raster_filepath)
+nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
+basin_nlcd = terra::extract(nlcd, vect(basin))
+```
+
+Extract of elevation for station points
+```{r extract, message=FALSE, warning=FALSE, error=FALSE}
+library(FedData)
+library(terra)
+# The data access for elevation using FedData slow, so I've commented out and saved the data locally...
+
+# elev <- get_ned(template = as(basin,'Spatial'),label='Marys River')
+# marys_elev <- terra::crop(elev, basin)
+# terra::writeRaster(marys_elev, 'C:/Users/mweber/Temp/marys_elev.tif')
+marys_elev <- terra::rast('C:/Users/mweber/Temp/marys_elev.tif')
+
+st_crs(stations_sf)$wkt == crs(marys_elev)
+marys_elev <- terra::project(marys_elev, st_crs(stations_sf)$wkt)
+stations_sf$elevation <- terra::extract(marys_elev, vect(stations_sf))
+stations_sf$elevation
+```
+
+Elevation summary for the watershed - doing zonal statistics using a vector feature zone on a raster
+```{r extract2, message=FALSE, warning=FALSE, error=FALSE}
+# project both our raster and polygon data
+library(terra)
+basin <- st_transform(basin, 5070)
+marys_elev <- project(marys_elev, st_crs(basin)$wkt, method = "bilinear")
+
+meanelev <- terra::extract(marys_elev, vect(basin), fun = mean, na.rm = T, small = T)
+meanelev
+```
+
+Categorical raster (NLCD) summary for the watershed
+```{r extract3, message=FALSE, warning=FALSE, error=FALSE}
+raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
+nlcd <- rast(raster_filepath)
+nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
+basin_nlcd = terra::extract(nlcd, vect(basin))
+
+basin_nlcd$Category <- as.character(basin_nlcd$`NLCD Land Cover Class`)
+basin_nlcd %>%
+  group_by(Category) %>%
+  count()
+```
+
 
 ## Spatial Overlap
 Here's a fun example using material posted by Nicholas Tierney [here](https://www.njtierney.com/post/2021/08/21/how-much-one-shapefile-overlaps-another/) that he put together based on [this Stack Overflow discussion](https://gis.stackexchange.com/questions/362466/calculate-percentage-overlap-of-2-sets-of-polygons-in-r).
@@ -132,14 +213,14 @@ ggplot() +
           fill = "forestgreen") 
 ```
 
-### Next we'll create a dummy spatial polygon file to compare area with using the `rmapshaper` package to simplify the border of the PDX metropolitan polygon
+#### Next we'll create a dummy spatial polygon file to compare area with using the `rmapshaper` package to simplify the border of the PDX metropolitan polygon
 ```{r overlap2, message=FALSE, warning=FALSE, error=FALSE}
 library(rmapshaper) 
 pdx_simplified <- pdx %>% 
   ms_simplify(keep = 0.01)
 ```
 
-### Then we can overlay polygons in ggplot to see how similar they are, showing the original census PDX metropolitan area in green, and new simplified polygon in red
+#### Then we can overlay polygons in ggplot to see how similar they are, showing the original census PDX metropolitan area in green, and new simplified polygon in red
 ```{r overlap3, message=FALSE, warning=FALSE, error=FALSE}
 ggplot() + 
   geom_sf(data = pdx,
@@ -149,7 +230,7 @@ ggplot() +
           alpha = 0.5)
 ```
 
-### Now that we have an original and simplified polygon to compare, the process we want to use is:
+#### Now that we have an original and simplified polygon to compare, the process we want to use is:
 
 - Calculate original metro area polygon area
 - Calculate the intersection of these two areas - original and simplified (st_intersection)
@@ -169,10 +250,10 @@ intersection_area <- st_intersection(pdx, pdx_simplified) %>%
     st_drop_geometry()
 ```
 
-### Exercise
+#### Exercise
 This step should have given you an error -THIS IS VERY COMMON WORKING WITH SPATIAL DATA IN R AND USING `sf`.
 
-### Solution
+#### Solution
 ```{r overlap6, message=FALSE, warning=FALSE, error=FALSE}
 pdx_simplified <- st_make_valid(pdx_simplified)
 pdx <- st_make_valid(pdx)
@@ -278,46 +359,3 @@ flowline_nldi$UT_flowlines$PCTIMP2011CAT <- df$PCTIMP2011CAT[match(flowline_nldi
 mapview(flowline_nldi$UT_flowlines, zcol = "PCTIMP2011CAT", legend = TRUE) + mapview(basin, alpha.regions=.07)
 ```
 
-## Extract
-Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
-
-Extract of elevation for station points
-```{r extract, message=FALSE, warning=FALSE, error=FALSE}
-library(FedData)
-library(terra)
-# The data access for elevation using FedData slow, so I've commented out and saved the data locally...
-
-# elev <- get_ned(template = as(basin,'Spatial'),label='Marys River')
-# marys_elev <- terra::crop(elev, basin)
-# terra::writeRaster(marys_elev, 'C:/Users/mweber/Temp/marys_elev.tif')
-marys_elev <- terra::rast('C:/Users/mweber/Temp/marys_elev.tif')
-
-st_crs(stations_sf)$wkt == crs(marys_elev)
-marys_elev <- terra::project(marys_elev, st_crs(stations_sf)$wkt)
-stations_sf$elevation <- terra::extract(marys_elev, vect(stations_sf))
-stations_sf$elevation
-```
-
-Elevation summary for the watershed - doing zonal statistics using a vector feature zone on a raster
-```{r extract2, message=FALSE, warning=FALSE, error=FALSE}
-# project both our raster and polygon data
-library(terra)
-basin <- st_transform(basin, 5070)
-marys_elev <- project(marys_elev, st_crs(basin)$wkt, method = "bilinear")
-
-meanelev <- terra::extract(marys_elev, vect(basin), fun = mean, na.rm = T, small = T)
-meanelev
-```
-
-Categorical raster (NLCD) summary for the watershed
-```{r extract3, message=FALSE, warning=FALSE, error=FALSE}
-raster_filepath <- system.file("extdata", "benton_nlcd.tif", package = "Rspatialworkshop")
-nlcd <- rast(raster_filepath)
-nlcd <- project(nlcd, st_crs(basin)$wkt, method = "near")
-basin_nlcd = terra::extract(nlcd, vect(basin))
-
-basin_nlcd$Category <- as.character(basin_nlcd$`NLCD Land Cover Class`)
-basin_nlcd %>%
-  group_by(Category) %>%
-  count()
-```
