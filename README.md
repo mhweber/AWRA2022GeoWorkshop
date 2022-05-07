@@ -47,7 +47,7 @@ library(Rspatialworkshop)
 ## Resources
 
 Here is a list of some useful geospatial tools and resources:
- 
+
 * General:
   * [Awesome Geospatial](https://github.com/sacridini/Awesome-Geospatial):
     A Long list of geospatial analysis tools.
