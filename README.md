@@ -64,6 +64,8 @@ Here is a list of some useful geospatial tools and resources:
     One of the best overall resources for working with spatial data in R
   * [nhdplusTools](https://usgs-r.github.io/nhdplusTools/):
     R package for manipulation of hydrographic data using the NHDPlus data model
+  * [Hydroinformatics in R](https://vt-hydroinformatics.github.io/):
+    Extensive Notes and exercises for a course on data analysis techniques in hydrology using the programming language R
   * [r-spatial](https://github.com/r-spatial):
     Suite of fundamental packages for working with spatial data in R
 * Python:

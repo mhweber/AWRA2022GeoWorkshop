@@ -1,0 +1,38 @@
+---
+title: "Session 2 Intro"
+author: "Marc Weber"
+date: "2022-05-0810"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Session Goals
+
+- Step through key open source packages and data structures for working with geospatial hydrology data in R and Python
+- This is a live coding session - our hope is that everyone can code along with us
+- We will focus primarily on R but introduce Python equivalents for most operations
+
+## What will we cover this hour?
+
+- Getting spatial data into R / Python
+- Typical data structures and libraries for spatial data in R / Python
+- Manipulating vector data in R / Python
+- Manipulating raster data in R / Python
+- Basic geoprocessing operations with vector and raster data in R / Python
+
+## Caveats
+
+<div class='left' style='float:left;width:48%'>
+- This is A LOT to cover in an hour - we will just scratch the surface
+- We've provided a number of links on the workshop [GitHub repository](https://github.com/mhweber/AWRA2022GeoWorkshop) to previous workshops and key resources for working with geospatial hydrology data in R and Python
+- Please ask questions as we go!
+</div>
+<div class='right' style='float:right;width:48%'>
+![](speed.png){height=75% width=75% }
+
+</div>
+
+
