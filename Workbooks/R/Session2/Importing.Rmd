@@ -3,15 +3,15 @@ title: "Importing Spatial Data"
 author: "Marc Weber"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    toc_depth: 4
   html_document:
     toc: yes
     keep_md: true
     toc_depth: '4'
     df_print: paged
-  html_notebook:
-    toc: yes
-    toc_float: yes
-    toc_depth: 4
 editor_options:
   chunk_output_type: inline
 ---
@@ -107,7 +107,6 @@ Some thoughts [here](https://towardsdatascience.com/why-you-need-to-use-geopacka
 - lighter in file size than shapefiles
 - geopackages avoid the 10-character limit to column headers in shapefile attribute tables (stored in archaic .dbf files)
 
-
 #### Open spatial data sources
 There's a wealth of open spatial data accessible online now via static URLs or APIs - just a few examples include [Data.gov](https://catalog.data.gov/dataset?metadata_type=geospatial), NASA [SECAC Portal](http://sedac.ciesin.columbia.edu/), [Natural Earth](http://www.naturalearthdata.com/), [UNEP GEOdata](http://geodata.grid.unep.ch/), and countless others listed here at [Free GIS Data](https://freegisdata.rtwilson.com/)
 
@@ -129,8 +128,7 @@ plot(states$geometry)
 #### Reading in subsets of vector data
 Imagine we have really large datasets we need to work with.  We can subset the data as we read-in using SQL with `sf` as in this toy example using states data above.  Let's try to read in just PNW states from the states .json data.  See [st_read](https://r-spatial.github.io/sf/reference/st_read.html) for another example of this using the `sf` package `nc` data.
 ```{r}
-query_str <- str_c('SELECT * FROM "gz_2010_us_040_00_500k" WHERE NAME IN (\'',
-                     'Oregon', '\', \'','Washington','\',\'','Idaho','\')')                     
+query_str <- str_c('SELECT * FROM "gz_2010_us_040_00_500k" WHERE NAME IN (\'','Oregon', '\', \'','Washington','\',\'','Idaho','\')')                     
 states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_500k.json',query = query_str)
 glimpse(states)
 plot(states$`_ogr_geometry_`)
@@ -176,7 +174,7 @@ Based on examples of reading in different datasets and subsetting, try to find a
 For reading and writing raster data in R, the primary packages you'll use are:
  * `raster`, `terra`, or `stars` for raster formats such as [GeoTIFF](https://en.wikipedia.org/wiki/GeoTIFF) or [ESRI or ASCII grid](https://en.wikipedia.org/wiki/Esri_grid) using [GDAL](https://en.wikipedia.org/wiki/GDAL) under the hood.
  
-`raster` has been superceeded by `terra` so I will only show examples of `terra` here, and `stars` provides additional funcionality for dealing with spatio-temporal arrays and is `tidyvere`-compliant and works with `sf`, so I prefer in many ways to `terra`.
+`raster` has been superceeded by `terra` so I will only show examples of `terra` here, and `stars` provides additional funcionality for dealing with spatio-temporal arrays, is `tidyvere`-compliant and works with `sf`, so I prefer it in many ways to `terra`.
 
 We can get a list of all `gdal` drivers available via `sf`:
 ```{r message=FALSE, warning=FALSE, error=FALSE}
