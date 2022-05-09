@@ -20,7 +20,7 @@ editor_options:
     glimpse, filter, inner_join, select
     geom_sf, geom_histogram,
     read_sf (with vsi)
-  
+
   topics
     - tables to spatial, spatial to table (st_drop_geometry)
     - projected vs geographic CRS
@@ -59,7 +59,7 @@ state = "TX"
 texas = AOI::aoi_get(state = state)
 
 # Instantiate plot
-ggplot() + 
+ggplot() +
   # Add texas POLYGON
   geom_sf(data = texas, color = "red", fill = "blue") +
   # Apply theme
@@ -91,11 +91,11 @@ We can see that there are `r nrow(sites)` streamflow gauge stations in Texas tha
 For this we remotely access the gages 2 data set and join it to the above data.
 
 ```{r}
-sites = read_sf('/vsizip/{/vsicurl/https://water.usgs.gov/GIS/dsdl/gagesII_9322_point_shapefile.zip}/gagesII_9322_sept30_2011.shp')  %>%  
+sites = read_sf('/vsizip/{/vsicurl/https://water.usgs.gov/GIS/dsdl/gagesII_9322_point_shapefile.zip}/gagesII_9322_sept30_2011.shp')  %>%
   # Find those that the reference classifciation is NA and the drainage area is greater then 10
-  filter(is.na(HCDN_2009), DRAIN_SQKM > 10)   %>%  
+  filter(is.na(HCDN_2009), DRAIN_SQKM > 10)   %>%
   # Join to the site IDs returned from NWIS
-  inner_join(sites, by = c("STAID" = "site_no")) %>% 
+  inner_join(sites, by = c("STAID" = "site_no")) %>%
   # Find those that give a daily mean (stat_cd), and have at least 30 years of data
   # Send to a projected transformation
   st_transform(5070)
@@ -105,11 +105,11 @@ We can see that there are `r nrow(sites)` streamflow gauge stations in Texas tha
 
 ```{r}
 # Instantiate plot
-ggplot() + 
+ggplot() +
   # Add texas POLYGON
   geom_sf(data = texas, color = "red", fill = "blue") +
   # Add sites to map
-  geom_sf(data = sites, pch = 8, color = "white") + 
+  geom_sf(data = sites, pch = 8, color = "white") +
   # Apply theme
   theme_light()
 ```
@@ -120,23 +120,23 @@ Next we need data on dam locations and want to isolate those that are built betw
 
 ```{r}
 
-# Read from USACE NID dataset 
+# Read from USACE NID dataset
 dams = read.csv('https://nid.usace.army.mil/api/nation/csv', skip = 1) %>%
-  # Find those within year range, the state of Texas, and of a given size 
+  # Find those within year range, the state of Texas, and of a given size
   filter(between(Year.Completed, 1995, 2005), State == "Texas", NID.Storage..Acre.Ft. > 1000) %>%
   # convert table to sf object
-  sf::st_as_sf(coords = c('Longitude', 'Latitude'), crs = 4326)  %>%  
-  # Keep only relevant columns 
-  select(NID.ID, NID.Storage..Acre.Ft., Year.Completed) %>% 
-  # Send to a projected transformation 
+  sf::st_as_sf(coords = c('Longitude', 'Latitude'), crs = 4326)  %>%
+  # Keep only relevant columns
+  select(NID.ID, NID.Storage..Acre.Ft., Year.Completed) %>%
+  # Send to a projected transformation
   st_transform(5070)
 
 # Instantiate plot
-ggplot() + 
+ggplot() +
   # Add texas POLYGON
   geom_sf(data = texas, color = "red", fill = "blue") +
   # Add sites to map
-  geom_sf(data = sites, pch = 8, color = "white") +  
+  geom_sf(data = sites, pch = 8, color = "white") +
   # Add dams to map
   geom_sf(data = dams, pch = 16, color = "darkgreen") +
   # Apply theme
@@ -147,7 +147,7 @@ As is evident from the plot above, there are many gage locations that don't have
 
 ```{r}
 # Instatiate plots, and add site data
-ggplot(data = sites, aes(x = DRAIN_SQKM)) + 
+ggplot(data = sites, aes(x = DRAIN_SQKM)) +
   # Generate a histogram
   geom_histogram()
 ```
@@ -159,29 +159,29 @@ We can see that most stations have a drainage area of less than 15000 km^2^. Sin
 # Filter the dams to only inlcude those within 10000 m of a site
 dams2 = st_filter( dams, sites,
                    .predicate = st_is_within_distance,
-                   dist = 10000) 
+                   dist = 10000)
 
 # Filter the dams to only inlcude those within 10000 m of a site
 sites2 = st_filter( sites, dams,
                     .predicate = st_is_within_distance,
-                    dist = 10000)  %>%  
+                    dist = 10000)  %>%
   # Only inlcude relevant columns for readabilty
   select(STAID, DRAIN_SQKM)
 
 
 # Instatiate plots, and add site data
-ggplot(data = sites2, aes(x = DRAIN_SQKM)) + 
+ggplot(data = sites2, aes(x = DRAIN_SQKM)) +
   # Generate a histogram
   geom_histogram()
 ```
 
 ```{r}
 # Instantiate plot
-ggplot() + 
+ggplot() +
   # Add texas POLYGON
   geom_sf(data = texas, color = "red", fill = "blue") +
   # Add sites to map
-  geom_sf(data = sites2, pch = 8, color = "white") +  
+  geom_sf(data = sites2, pch = 8, color = "white") +
   # Add dams to map
   geom_sf(data = dams2, pch = 16, color = "darkgreen") +
   # Apply theme
@@ -195,7 +195,7 @@ ggplot() +
 for(i in 1:nrow(dams2)){
   # Find the XY coordinates, in geographic space, for a dam
   pt = st_coordinates(st_transform(dams2[i,], 4326))
-  
+
   # Find the COMID associated with that POINT, and add to the DAMS data.frame/sf
   dams2$dam_comid[i] = dataRetrieval::findNLDI(location = pt)$comid
 }
@@ -220,10 +220,10 @@ for(i in 1:nrow(joined)){
 
   # Check if the linked dam COMID is in the uptream COMIDs for each gage
   joined$upstream[i] = joined$dam_comid[i] %in% tmp$UT_flowlines$nhdplus_comid
-} 
+}
 
 # Only keep those in which the large dam is upstream
-joined = dplyr::filter(joined, upstream) 
+joined = dplyr::filter(joined, upstream)
 
 glimpse(joined)
 ```
@@ -234,42 +234,42 @@ tmp = dataRetrieval::findNLDI(nwis = joined$STAID[1],
                nav = "UT",
                find= c('flowlines', "basin"))
 
-ggplot() + 
-  geom_sf(data = tmp$basin) + 
+ggplot() +
+  geom_sf(data = tmp$basin) +
   geom_sf(data = tmp$UT_flowlines) +
-  geom_sf(data = joined, pch = 8, color = "red", cex = 5) + 
+  geom_sf(data = joined, pch = 8, color = "red", cex = 5) +
   geom_sf(data = filter(dams2, NID.ID %in% joined$NID.ID), pch = 16, color = "darkgreen", cex = 5)
 ```
 
 
 ```{r}
 flows = dataRetrieval::readNWISdv(siteNumbers = joined$STAID,
-                   parameterCd = "00060")  %>%  
-  renameNWISColumns() %>% 
-  mutate(Y = as.numeric(format(Date, "%Y")))  %>% 
-  group_by(Y)  %>%  
+                   parameterCd = "00060")  %>%
+  renameNWISColumns() %>%
+  mutate(Y = as.numeric(format(Date, "%Y")))  %>%
+  group_by(Y)  %>%
   summarize(meanQ  = mean(Flow))
 
 
 ggplot(data = flows, aes(x = Y, y = meanQ )) +
-  geom_line(color = "blue") + 
-  geom_vline(xintercept =  2004, lty = 2, color = 'red', lwd = 1.5) + 
+  geom_line(color = "blue") +
+  geom_vline(xintercept =  2004, lty = 2, color = 'red', lwd = 1.5) +
   theme_minimal()
 ```
 
 
 ```{r}
 
-r = rast("/vsicurl/https://storage.googleapis.com/feddata-r/nlcd/2019_Land_Cover_L48.tif") 
+r = rast("/vsicurl/https://storage.googleapis.com/feddata-r/nlcd/2019_Land_Cover_L48.tif")
 
 vAOI = project(vect(tmp$basin), crs(r))
 
-lc = crop(r, vAOI, snap = "out") %>% 
+lc = crop(r, vAOI, snap = "out") %>%
   mask(vAOI)
 
 
-freq(lc) %>% 
-  arrange(-count)  %>%  
+freq(lc) %>%
+  arrange(-count)  %>%
   mutate(sqkm = count * prod(res(lc)) /1e6)
 ```
-# 
+#

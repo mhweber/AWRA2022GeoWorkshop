@@ -34,5 +34,3 @@ knitr::opts_chunk$set(echo = FALSE)
 ![](speed.png){height=75% width=75% }
 
 </div>
-
-
