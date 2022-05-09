@@ -7,22 +7,8 @@ Geospatial R and Python Workshop.
 
 ## Getting Started
 
-For working with R, you can use [RStudio](https://www.rstudio.com/) and for Python
-a combination of [Mambaforge](https://github.com/conda-forge/miniforge) and your favorite
-IDE like VS Code or Jupyter Lab.
-
-After installing `mambaforge` you can create a Python environment as follows:
-
-```console
-git clone https://github.com/mhweber/AWRA2022GeoWorkshop
-cd AWRA2022GeoWorkshop
-mamba env create -f environment.yml
-```
-
-Now a new environment called `awra2022` is created that can be loaded from your IDE.
-
-## R libraries needed for workshop
-For this workshop, you will need the following R libraries installed:
+For working with R, you can use [RStudio](https://www.rstudio.com/) and you will
+need the following libraries installed:
 
 ```r
 library(sf)
@@ -44,6 +30,34 @@ library(awra2020spatial)
 install_github("mhweber/Rspatialworkshop")
 library(Rspatialworkshop)
 ```
+
+For running with Python notebooks you can use a combination of
+[Mambaforge](https://github.com/conda-forge/miniforge) and your favorite
+IDE such as VS Code or Jupyter Lab. For example, you can install it on OSX
+as follows:
+
+```bash
+APP_DIR="~/.local/apps" && \
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-MacOSX-x86_64.sh && \
+chmod +x Mambaforge-MacOSX-x86_64.sh && \
+bash ./Mambaforge-MacOSX-x86_64.sh -b -p ${APP_DIR}/mambaforge && \
+rm -f Mambaforge-MacOSX-x86_64.sh
+```
+
+where `APP_DIR` can be set to any location of interest.
+
+After installing `mambaforge` you can create a Python environment as follows:
+
+```bash
+git clone https://github.com/mhweber/AWRA2022GeoWorkshop && \
+cd AWRA2022GeoWorkshop && \
+mamba env create -f environment.yml
+```
+
+Now a new environment called `awra2022` is created that can be loaded from your IDE.
+You can also use the Binder service by clicking on the Binder badge to launch a Jupyter Lab
+instance with all the required Python libraries installed.
+
 ## Resources
 
 Here is a list of some useful geospatial tools and resources:
@@ -91,7 +105,6 @@ Here is a list of some useful geospatial tools and resources:
   * [OSMnx](https://github.com/gboeing/osmnx):
     A Python package that lets you download and analyze geospatial data from OpenStreetMap.
   * [Xarray Spatial](https://xarray-spatial.org/master/index.html):
-    Implements common raster analysis functions using `numba` and provides an easy-to-install,
-    the easy-to-extend codebase for raster analysis.
+    Implements common raster analysis functions using `numba` and provides an easy-to-install, easy-to-extend codebase for raster analysis.
   * [Datashader](https://datashader.org/):
     Accurately render even the largest data
