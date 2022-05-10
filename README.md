@@ -8,7 +8,7 @@ Geospatial R and Python Workshop.
 
 ## Intro Material
 
-Loosly based on [Introduction of Geocoputation](https://mikejohnson51.github.io/spds/)
+Loosly based on [Introduction of Geoinformatics](https://mikejohnson51.github.io/spds/)
 
  - [Data Type and Structure](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#1)
 
