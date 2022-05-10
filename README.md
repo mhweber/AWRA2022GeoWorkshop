@@ -31,7 +31,7 @@ install_github("mhweber/Rspatialworkshop")
 library(Rspatialworkshop)
 ```
 
-For running with Python notebooks you can use a combination of
+For running Python notebooks you can use a combination of
 [Mambaforge](https://github.com/conda-forge/miniforge) and your favorite
 IDE such as VS Code or Jupyter Lab. For example, you can install it on OSX
 as follows:
