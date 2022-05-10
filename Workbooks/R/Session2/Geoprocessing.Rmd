@@ -425,7 +425,7 @@ terra::global(elev_mask, fun="mean", na.rm=TRUE)
 terra::global(elev_mask, fun="sum", na.rm=TRUE)
 ```
 
-#### Extract
+### Extract
 Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
 elevation <- elevatr::get_elev_raster(as_Spatial(SouthSantiam$basin), z = 9)
