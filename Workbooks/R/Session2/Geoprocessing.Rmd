@@ -97,7 +97,7 @@ nrow(gages_basin)
 
 ```{r}
 gages_basin <- st_filter(gages_sf, SouthSantiam$basin)
-nrow(gages_)
+nrow(gages_sf)
 ```
 
 ```{r}
@@ -315,7 +315,6 @@ For spatial operations in R, raster or vector, we always need to make sure objec
 
 We'll use the elevation data and Crater Lake polygon feature in the `Rspatialworkshop` package for this example.
 ```{r projection, message=FALSE, warning=FALSE, error=FALSE}
-library(Rspatialworkshop)
 data(CraterLake)
 raster_filepath <- system.file("extdata", "elevation.tif", package = "Rspatialworkshop")
 elevation <- rast(raster_filepath)
@@ -429,17 +428,17 @@ terra::global(elev_mask, fun="sum", na.rm=TRUE)
 #### Extract
 Last, just quick examples of extracting raster values at points or using extract to summarize raster values for spatial polygons.
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
-elevation <- get_elev_raster(as_Spatial(SouthSantiam$basin), z = 9)
+elevation <- elevatr::get_elev_raster(as_Spatial(SouthSantiam$basin), z = 9)
 elevation
-gages <- st_transform(gages, projection(elevation))
-gages$elevation <- raster::extract(elevation, as_Spatial(gages))
-stations_sf$elevation
+gages_basin <- st_transform(gages_basin, raster::projection(elevation))
+gages_basin$elevation <- raster::extract(elevation, as_Spatial(gages_basin))
+gages_basin$elevation
 ```
 
 Elevation summary for the watershed - doing zonal statistics using a vector feature zone on a raster
 ```{r extract2, message=FALSE, warning=FALSE, error=FALSE}
 # project both our raster and polygon data
-SouthSantiamBasin <- st_transform(SouthSantiam$basin, projection(elevation))
+SouthSantiamBasin <- st_transform(SouthSantiam$basin, raster::projection(elevation))
 SouthSantiamBasin$MeanElevation <- raster::extract(elevation, SouthSantiamBasin, fun = mean, na.rm = T, small = T)
 print(SouthSantiamBasin$MeanElevation)
 ```
