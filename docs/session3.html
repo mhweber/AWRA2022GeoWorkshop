@@ -1,0 +1,4979 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Concepts: Vector Data</title>
+    <meta charset="utf-8" />
+    <script src="libs/header-attrs-2.14/header-attrs.js"></script>
+    <link rel="stylesheet" href="awra.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Concepts: Vector Data
+]
+
+---
+
+
+
+&lt;style type="text/css"&gt;
+.remark-code{font-size: 100%}
+&lt;/style&gt;
+
+
+
+# Learning Objectives
+
+- All spatial softwares (open and closed) are based on a core set of community based sofware
+
+- Vector geometry is defined by coordinate pairs in a spatial reference systems
+
+- Geometry can be associated with observations/rows in a `data.frame` allowing us to take advantage of the `data.frame` world
+
+- Geometries  have a whole host of other capabilites including `measures` and `predicats`
+
+---
+
+# Spatial Data 
+
+The Spatial community is built on a few organizing communities OSgeo and OGC
+
+_and_ a few core libraries that drive EVERY spatial software you use!
+
+These include: 
+  - PROJ --&gt; projections  
+  
+  - GEOS --&gt; Geometery operations
+  
+  - GDAL --&gt; geodata abstraction and
+  processing
+
+---
+
+# Vector Data Model:
+
+- Vector features can be decomposed into three different `geometric` primitives: 
+ 
+  1. `points`
+  2. `polylines`
+  3. `polygons`
+
+--
+
+- Primitives can be thought of as the "building blocks" for all vector features
+
+--
+
+- All primitives can be decomposed into set(s) of numeric X-Y coordinates with a known grid (reference system)
+
+--
+
+- These reference systems are known as `PRØJ`ections, reference systems, ect
+
+---
+
+
+# Points
+
+.pull-left[
+- A point is composed of **one** coordinate pair (XY) in a specific coordinate system.
+
+- POITNS can have a Z or M diminsion as well but are out of scope here
+
+- A `POINT` has no length, no area anda dimension of 0.
+
+
+```r
+# POINT defined as numeric vector
+(st_dimension(st_point(c(0,1))))
+```
+
+```
+[1] 0
+```
+]
+
+.pull-right[
+
+```r
+ggplot() + 
+  geom_point(aes(x = c(1,2,3), y = c(3,1,2))) + 
+  labs(x = "X", y = "Y") 
+```
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-3-1.png" width="432" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Polyline
+
+.pull-left[
+- A polyline is composed of a **ordered** sequence of two or more `POINT`s
+
+- Points in a line are called vertices/nodes and explicitly define the connection between two points. 
+
+- A **LINESTRING** has a length, has no area and  has a dimension of 1 (length)
+
+
+```r
+# LINESTRING defined by matrix
+(st_dimension(st_linestring(matrix(1:4, nrow = 2))))
+```
+
+```
+[1] 1
+```
+]
+
+.pull-right[
+
+```r
+ggplot() + 
+  geom_line(aes(x = c(1,2,3), y = c(3,1,2))) + 
+  geom_point(aes(x = c(1,2,3), y = c(3,1,2)), col = "red") + 
+  labs(x = "X", y = "Y") 
+```
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-5-1.png" width="432" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Polygon
+
+.pull-left[
+- A `POLYGON` is composed of 4 or more points whose starting and ending point are the same. 
+
+- A **POLYGON** is surface stored as a list of its exterior and interior rings. 
+
+- **POLYGON** have length,  area, and a dimension of 2. (area)
+
+
+```r
+# POLYGON defined by LIST (interior and exterior rings)
+(st_dimension(st_polygon(list(matrix(c(1:4, 1,2), nrow = 3, byrow = TRUE)))))
+```
+
+```
+[1] 2
+```
+
+]
+
+.pull-right[
+
+```r
+ggplot() + 
+  geom_polygon(aes(x = c(1,2,3,1), y = c(3,1,2,3)), fill = "green", alpha = .5) + 
+  geom_line(aes(x = c(1,2,3), y = c(3,1,2))) + 
+  geom_point(aes(x = c(1,2,3), y = c(3,1,2)), col = "red") +
+  labs(x = "X", y = "Y") 
+```
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-7-1.png" width="432" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# Projections
+
+Place a numeric coordinate set in a relative/reference space:
+
+
+&lt;img src="img/09-gcs-pcs.png" width="60%" style="display: block; margin: auto;" /&gt;
+
+---
+
+- Projections can have angular units (lat/lon) - geographic coordinate systems (GCS), They are made up of:
+
+
+--
+
+    - Ellipsoid (squished "ideal" sphere model)
+
+--
+
+    - geoid (mathamatical model of gravitatial feild)
+  
+--
+  
+    - datum the relationship between the ellipsoid and geoid
+
+--
+      - datums can be local (NAD27), or,
+    
+--
+
+      - global (WGS84, NAD83)
+    
+---
+  
+- SRS can also be projected (x-y axis, measurement units (m), false origin)
+
+--
+
+  - All PCS are based on GCS
+      
+--
+  
+  - Projections seek to place the 3D earth on 2D
+      
+--
+  
+  - Do this by defining a plane that can be conic, cylindrical or planar
+      
+--
+  
+  - "unfolding to this plane" creates distortion of **shape**, **area**, **distance**, or **direction**
+      
+--
+  
+  - The distortion is greater from point/lines of tangency or secanacy 
+
+---
+
+
+```r
+o = data.frame(X = 0, Y = 0, name = "origin") |&gt; 
+  st_as_sf(coords = c("X", "Y"), crs = 5070)
+
+o
+```
+
+```
+Simple feature collection with 1 feature and 1 field
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 0 ymin: 0 xmax: 0 ymax: 0
+Projected CRS: NAD83 / Conus Albers
+    name    geometry
+1 origin POINT (0 0)
+```
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-10-1.png" width="432" /&gt;
+---
+
+# Measure (GEOS Measures)
+
+- Measures are the questions we ask about the dimension of a geometry, once a reference has been established we can compute:
+    
+--
+  
+  - How long is a line or polygon perimeter (unit)
+      
+--
+  
+  - What is the area of a polygon (unit^2^)
+      
+--
+  
+  - How far are two object from one another (unit)
+      
+--
+  
+  
+ - Measures come from the GEOS library
+    
+--
+  
+- Measures are in the **units** of the projection
+ 
+---
+
+# WKT: Well-Known-Text
+
+Well-known text is a text markup language for representing vector geometry objects. 
+
+A binary equivalent, known as well-known binary, is used to transfer and store the same information in a more compact form convenient for computer processing.
+
+
+```r
+(p1 = st_point(c(1,2)))
+
+(ls1 = st_linestring(matrix(1:10, , 2)))
+
+outer = matrix(c(0,0,10,0,10,10,0,10,0,0),ncol=2, byrow=TRUE)
+hole1 = matrix(c(1,1,1,2,2,2,2,1,1,1),ncol=2, byrow=TRUE)
+pts = list(outer, hole1)
+(pl1 = st_polygon(pts))
+```
+
+---
+
+# Simple Features Model
+
+Simple Features (officially Simple Feature Access) is both an OGC and International Organization for Standardization (ISO) standard that specifies a common storage and access model of (mostly) two-dimensional geometries.
+
+
+&lt;img src="img/09-sf-model.png" width="75%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Example!
+
+
+```r
+gages &lt;- read.csv(system.file("extdata", "Gages_flowdata.csv", package = "awra2020spatial")) |&gt; 
+  select(SOURCE_FEA, STATE, LAT_SITE, LON_SITE)
+```
+
+
+```
+Rows: 2,771
+Columns: 4
+$ SOURCE_FEA &lt;int&gt; 14361500, 14344500, 10378500, 14341500, 14343000, 13092500,…
+$ STATE      &lt;chr&gt; "OR", "OR", "OR", "OR", "OR", "ID", "OR", "OR", "OR", "OR",…
+$ LAT_SITE   &lt;dbl&gt; 42.43040, 42.42763, 42.42488, 42.40819, 42.40263, 42.39648,…
+$ LON_SITE   &lt;dbl&gt; -123.3178, -122.6011, -119.9233, -122.6011, -122.5373, -114…
+```
+
+--
+
+
+```r
+gages &lt;- gages %&gt;% 
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269)
+```
+
+
+```
+Rows: 2,771
+Columns: 3
+$ SOURCE_FEA &lt;int&gt; 14361500, 14344500, 10378500, 14341500, 14343000, 13092500,…
+$ STATE      &lt;chr&gt; "OR", "OR", "OR", "OR", "OR", "ID", "OR", "OR", "OR", "OR",…
+$ geometry   &lt;POINT [°]&gt; POINT (-123.3178 42.4304), POINT (-122.6011 42.42763)…
+```
+
+--
+
+
+```r
+st_distance(gages[1,], gages[2,])
+```
+
+```
+Units: [m]
+         [,1]
+[1,] 58822.95
+```
+
+---
+
+# data.frames and geometries Tables
+
+- In R and Python, the sf and geopandas libraries allow geometries to act as a attribute of data.frames by extending the capabilites of the data.frame object.
+
+- This allows any observation to be assocaited with attribures and geometry fot GIS applications!
+
+
+```
+Simple feature collection with 2771 features and 2 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: -124.6691 ymin: 41.42768 xmax: -110.4411 ymax: 49.00075
+Geodetic CRS:  NAD83
+First 10 features:
+   SOURCE_FEA STATE                   geometry
+1    14361500    OR  POINT (-123.3178 42.4304)
+2    14344500    OR POINT (-122.6011 42.42763)
+3    10378500    OR POINT (-119.9233 42.42488)
+4    14341500    OR POINT (-122.6011 42.40819)
+5    14343000    OR POINT (-122.5373 42.40263)
+6    13092500    ID POINT (-114.3693 42.39648)
+7    10378000    OR POINT (-120.0177 42.38322)
+8    10376500    OR POINT (-119.9011 42.38322)
+9    14378000    OR   POINT (-123.8123 42.379)
+10   14342500    OR POINT (-122.3567 42.37624)
+```
+
+--
+
+- In shapefiles, these attributes are stored in a ".dbf" file, the `geometry` is stored in a ".shp" file, and they are related through a ".shx" file.
+
+
+---
+
+# The simple feature R object
+
+-  a spatial object is a `data.frame` class that extends core primitive types and structures.
+
+
+```r
+gages[1,]
+```
+
+```
+Simple feature collection with 1 feature and 2 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: -123.3178 ymin: 42.4304 xmax: -123.3178 ymax: 42.4304
+Geodetic CRS:  NAD83
+  SOURCE_FEA STATE                  geometry
+1   14361500    OR POINT (-123.3178 42.4304)
+```
+
+```r
+class(gages)
+```
+
+```
+[1] "sf"         "data.frame"
+```
+
+```r
+typeof(gages)
+```
+
+```
+[1] "list"
+```
+
+---
+
+# Drop the structure
+
+
+```r
+(d = st_drop_geometry(gages) %&gt;% head())
+```
+
+```
+  SOURCE_FEA STATE
+1   14361500    OR
+2   14344500    OR
+3   10378500    OR
+4   14341500    OR
+5   14343000    OR
+6   13092500    ID
+```
+
+```r
+class(d)
+```
+
+```
+[1] "data.frame"
+```
+
+
+---
+class:inverse, middle, center
+# R as a GIS
+---
+
+## Simple features (sf) package
+
+The `sf` package implements the Simple Features standard for R by allowing geometries to be associated with data.frame rows.
+
+--
+
+- The `sf` package contains functions that bind 
+  - to `GDAL` for reading and writing data,
+  - to `GEOS` for geometrical operations, and 
+  - to `PRØJ` for projection conversions and datum transformations
+
+
+```r
+sf::sf_extSoftVersion()
+```
+
+```
+          GEOS           GDAL         proj.4 GDAL_with_GEOS     USE_PROJ_H 
+       "3.9.1"        "3.4.0"        "8.1.1"         "true"         "true" 
+          PROJ 
+       "8.1.1" 
+```
+
+---
+
+## Simple features (sf) package 
+
+- represents &lt;span class="code"&gt;simple features&lt;/span&gt; as records in a `data.frame` or `tibble` with a `geometry list-column`
+
+
+&lt;img src="img/09-sf-depends.png" width="75%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Extending GDAL
+
+With respect to GDAL, some utilities are directly exposed by `sf` as can be seen in the available function signatures:
+
+
+```r
+grep("gdal", ls("package:sf"), value = T)
+```
+
+```
+ [1] "gdal_create"           "gdal_crs"              "gdal_extract"         
+ [4] "gdal_inv_geotransform" "gdal_metadata"         "gdal_polygonize"      
+ [7] "gdal_rasterize"        "gdal_read"             "gdal_read_mdim"       
+[10] "gdal_subdatasets"      "gdal_utils"            "gdal_write"           
+[13] "gdal_write_mdim"      
+```
+
+
+---
+# Extending PRØJ
+
+
+```r
+grep("proj_|crs", ls("package:sf"), value = T)
+```
+
+```
+ [1] "gdal_crs"             "NA_crs_"              "sf_add_proj_units"   
+ [4] "sf_proj_info"         "sf_proj_network"      "sf_proj_pipelines"   
+ [7] "sf_proj_search_paths" "st_crs"               "st_crs&lt;-"            
+[10] "st_set_crs"          
+```
+
+---
+
+# Extending GEOS/Simple Featrues Access
+
+
+```r
+grep("st_", ls("package:sf"), value = T)
+```
+
+```
+  [1] "st_agr"                "st_agr&lt;-"              "st_area"              
+  [4] "st_as_binary"          "st_as_grob"            "st_as_s2"             
+  [7] "st_as_sf"              "st_as_sfc"             "st_as_text"           
+ [10] "st_axis_order"         "st_bbox"               "st_bind_cols"         
+ [13] "st_boundary"           "st_buffer"             "st_cast"              
+ [16] "st_centroid"           "st_collection_extract" "st_combine"           
+ [19] "st_contains"           "st_contains_properly"  "st_convex_hull"       
+ [22] "st_coordinates"        "st_covered_by"         "st_covers"            
+ [25] "st_crop"               "st_crosses"            "st_crs"               
+ [28] "st_crs&lt;-"              "st_delete"             "st_difference"        
+ [31] "st_dimension"          "st_disjoint"           "st_distance"          
+ [34] "st_drivers"            "st_drop_geometry"      "st_equals"            
+ [37] "st_equals_exact"       "st_filter"             "st_geometry"          
+ [40] "st_geometry_type"      "st_geometry&lt;-"         "st_geometrycollection"
+ [43] "st_graticule"          "st_inscribed_circle"   "st_interpolate_aw"    
+ [46] "st_intersection"       "st_intersects"         "st_is"                
+ [49] "st_is_empty"           "st_is_longlat"         "st_is_simple"         
+ [52] "st_is_valid"           "st_is_within_distance" "st_jitter"            
+ [55] "st_join"               "st_layers"             "st_length"            
+ [58] "st_line_merge"         "st_line_sample"        "st_linestring"        
+ [61] "st_m_range"            "st_make_grid"          "st_make_valid"        
+ [64] "st_multilinestring"    "st_multipoint"         "st_multipolygon"      
+ [67] "st_nearest_feature"    "st_nearest_points"     "st_node"              
+ [70] "st_normalize"          "st_overlaps"           "st_point"             
+ [73] "st_point_on_surface"   "st_polygon"            "st_polygonize"        
+ [76] "st_precision"          "st_precision&lt;-"        "st_read"              
+ [79] "st_read_db"            "st_relate"             "st_reverse"           
+ [82] "st_sample"             "st_segmentize"         "st_set_agr"           
+ [85] "st_set_crs"            "st_set_geometry"       "st_set_precision"     
+ [88] "st_sf"                 "st_sfc"                "st_shift_longitude"   
+ [91] "st_simplify"           "st_snap"               "st_sym_difference"    
+ [94] "st_touches"            "st_transform"          "st_triangulate"       
+ [97] "st_union"              "st_viewport"           "st_voronoi"           
+[100] "st_within"             "st_wrap_dateline"      "st_write"             
+[103] "st_write_db"           "st_z_range"            "st_zm"                
+```
+
+---
+
+# Spatial filters and Joins
+
+ - `data.frame` filters and joins were based on boolean conditions and relational keys
+ 
+ -  spatial filters are also based on boolean conditions
+ 
+ -  however, spatial joins are ALSO based on boolean conditions
+
+-  Boolean condions for geometries are defined by spatial realtions!
+
+- Spatial relations dictated are dictated by the Interiors, Boundaries and Exteriors
+
+
+---
+
+## Interior, Boundary and Exterior
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-26-1.png" width="720" style="display: block; margin: auto;" /&gt;
+
+---
+
+## DE-9IM
+
+- Dimensionally Extended 9-Intersection Model (DE-9IM)
+
+- The DE-9IM is a **topological** model and (standard) used to describe the spatial relations of two geometries 
+
+--
+
+- Used in geometry, point-set topology, geospatial topology
+
+--
+
+- The **DE-9IM** _matrix_ provides a way to classify geometry relations using the set **{0,1,2,F}** or **{T,F}**
+
+- Here {0,1,2,F} describe the diminsion of the intersection(POINT, LINE, AREA, NONE), and {T, F} is any.
+
+---
+
+The **DE-9IM** matrix is based on a 3x3 intersection matrix testing the following relations:
+
+- II, IE, IB
+- BI, BE, BB,
+- EI, EE, EB
+
+
+---
+
+&lt;img src="img/de9im3.jpg" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Spatial Predicates
+
+- With a **{T,F}** matrix domain across the I,B, E space, there are 512 possible relations that can be grouped into binary classification schemes. 
+
+--
+
+- About 10 of these, have been given a common name such as _intersects_, _touches_, and _within_. 
+
+-- 
+
+These are called spatial predicates and return a boolean value for each interacting geometry.
+
+--
+
+Can be serialize as a "DE-9IM string code" representing the matrix in a single string element
+
+
+---
+
+&lt;img src="img/geos_predicates.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Spatial Joins and fitlters
+
+So... 
+
+In a `data.frame`, a row is kept if the supplied boolen codition is true. Simularly `sf` provides st_filter(x,y)
+
+The critical arguement this filter is the .predicate.
+
+The default is `st_intersects`
+
+---
+
+# Example Dataset
+
+- Geometry X is a 3 feature polygon colored in red
+- Cemetery Y is a 4 feature polygon colored in blue
+
+&lt;img src="session3_files/figure-html/unnamed-chunk-29-1.png" width="432" /&gt;
+
+---
+
+## Binary logical operations 
+
+Returns either a *sparse* matrix
+
+
+```r
+st_intersects(x,y)
+```
+
+```
+Sparse geometry binary predicate list of length 3, where the predicate
+was `intersects'
+ 1: 1, 3
+ 2: 2, 3
+ 3: 3
+```
+
+or a *dense* matrix
+
+
+```r
+st_intersects(x, y, sparse = FALSE)
+```
+
+```
+      [,1]  [,2] [,3]  [,4]
+[1,]  TRUE FALSE TRUE FALSE
+[2,] FALSE  TRUE TRUE FALSE
+[3,] FALSE FALSE TRUE FALSE
+```
+
+
+```r
+sf::st_filter(x,y, .predicate = st_intersects)
+```
+
+```
+Simple feature collection with 3 features and 1 field
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: -1.2 ymin: -1 xmax: 3 ymax: 3
+CRS:           NA
+                               x ID
+1 POLYGON ((-1 -1, 1 -1, 1 1,...  1
+2 POLYGON ((1 1, 3 1, 3 3, 1 ...  2
+3 POLYGON ((-1.2 1, 0.8 1, 0....  3
+```
+
+```r
+sf::st_filter(x,y, .predicate = st_contains)
+```
+
+```
+Simple feature collection with 1 feature and 1 field
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: -1 ymin: -1 xmax: 1 ymax: 1
+CRS:           NA
+                               x ID
+1 POLYGON ((-1 -1, 1 -1, 1 1,...  1
+```
+
+
+```r
+sf::st_join(x, y, .predicate = st_intersects)
+```
+
+```
+Simple feature collection with 5 features and 2 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: -1.2 ymin: -1 xmax: 3 ymax: 3
+CRS:           NA
+    ID.x ID.y                              x
+1      1    A POLYGON ((-1 -1, 1 -1, 1 1,...
+1.1    1    C POLYGON ((-1 -1, 1 -1, 1 1,...
+2      2    B POLYGON ((1 1, 3 1, 3 3, 1 ...
+2.1    2    C POLYGON ((1 1, 3 1, 3 3, 1 ...
+3      3    C POLYGON ((-1.2 1, 0.8 1, 0....
+```
+
+```r
+sf::st_join(y, x, .predicate = st_intersects)
+```
+
+```
+Simple feature collection with 6 features and 2 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: -0.8 ymin: -1 xmax: 2.5 ymax: 1.8
+CRS:           NA
+    ID.x ID.y                              x
+1      A    1 POLYGON ((-0.8 -0.8, 0.8 -0...
+2      B    2 POLYGON ((1.6 0.3, 2.4 0.3,...
+3      C    1 POLYGON ((0.2 0.2, 1.8 0.2,...
+3.1    C    2 POLYGON ((0.2 0.2, 1.8 0.2,...
+3.2    C    3 POLYGON ((0.2 0.2, 1.8 0.2,...
+4      D   NA POLYGON ((1.5 -1, 2.5 -1, 2...
+```
+
+---
+
+# Wrap it all up! 
+
+- You have been tasked to identify the population living along the Mississippi River systems
+
+- You are interested in the county level since most flood control measures and flood response efforts are enforced by county EMAs 
+
+- Federal funding however is administered at the state level so you need population counts aggregated to state...
+
+---
+
+# River Data!
+
+
+```r
+# Global River Shapefile filtered to the Mississippi System
+(miss = '/vsizip/{/vsicurl/https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/50m/physical/ne_50m_rivers_lake_centerlines.zip}/ne_50m_rivers_lake_centerlines.shp' |&gt; 
+  read_sf() |&gt; 
+  filter(name == "Mississippi", featurecla == "River") |&gt; 
+  select(name))
+```
+
+```
+Simple feature collection with 1 feature and 1 field
+Geometry type: MULTILINESTRING
+Dimension:     XY
+Bounding box:  xmin: -95.02582 ymin: 28.98133 xmax: -89.01575 ymax: 47.48206
+Geodetic CRS:  WGS 84
+# A tibble: 1 × 2
+  name                                                                  geometry
+  &lt;chr&gt;                                                    &lt;MULTILINESTRING [°]&gt;
+1 Mississippi ((-89.37614 28.98133, -89.25713 29.15491, -89.01575 29.20287), (-…
+```
+--
+ 
+# Populations Data!
+
+
+```r
+(popdata = read.csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2021/counties/totals/co-est2021-alldata.csv') |&gt; 
+  filter(STNAME != CTYNAME) |&gt; 
+  mutate(fip_code = paste0(sprintf("%02s", STATE), sprintf("%03s", COUNTY)) ) |&gt; 
+  select(fip_code, POPESTIMATE2021))
+```
+
+```
+     fip_code POPESTIMATE2021
+1       01001           59095
+2       01003          239294
+3       01005           24964
+4       01007           22477
+5       01009           59041
+6       01011           10320
+7       01013           18884
+8       01015          115972
+9       01017           34541
+10      01019           24996
+11      01021           45274
+12      01023           12533
+13      01025           22760
+14      01027           14190
+15      01029           15103
+16      01031           54174
+17      01033           57474
+18      01035           11328
+19      01037           10450
+20      01039           37524
+21      01041           13083
+22      01043           89496
+23      01045           49342
+24      01047           37619
+25      01049           71813
+26      01051           89304
+27      01053           36699
+28      01055          103162
+29      01057           16148
+30      01059           32013
+31      01061           26701
+32      01063            7629
+33      01065           14754
+34      01067           17459
+35      01069          107458
+36      01071           52773
+37      01073          667820
+38      01075           13689
+39      01077           94043
+40      01079           33090
+41      01081          177218
+42      01083          107517
+43      01085            9965
+44      01087           18895
+45      01089          395211
+46      01091           18996
+47      01093           29246
+48      01095           98228
+49      01097          413073
+50      01099           19648
+51      01101          227434
+52      01103          123668
+53      01105            8355
+54      01107           18801
+55      01109           32991
+56      01111           21989
+57      01113           58722
+58      01115           92748
+59      01117          226902
+60      01119           12164
+61      01121           81524
+62      01123           41023
+63      01125          227007
+64      01127           64818
+65      01129           15147
+66      01131           10446
+67      01133           23652
+68      02013            3398
+69      02016            5059
+70      02020          288121
+71      02050           18557
+72      02060             838
+73      02063            6941
+74      02066            2630
+75      02068            1593
+76      02070            4772
+77      02090           95593
+78      02100            2071
+79      02105            2332
+80      02110           31973
+81      02122           59767
+82      02130           13754
+83      02150           12787
+84      02158            8360
+85      02164            1416
+86      02170          110686
+87      02180            9865
+88      02185           10972
+89      02188            7560
+90      02195            3356
+91      02198            5729
+92      02220            8407
+93      02230            1132
+94      02240            6970
+95      02275            2055
+96      02282             704
+97      02290            5275
+98      04001           65623
+99      04003          126050
+100     04005          145052
+101     04007           53589
+102     04009           39050
+103     04011            9404
+104     04012           16408
+105     04013         4496588
+106     04015          217692
+107     04017          108147
+108     04019         1052030
+109     04021          449557
+110     04023           47883
+111     04025          242253
+112     04027          206990
+113     05001           16722
+114     05003           18674
+115     05005           42144
+116     05007          293692
+117     05009           37830
+118     05011           10408
+119     05013            4741
+120     05015           28435
+121     05017           10019
+122     05019           21321
+123     05021           14350
+124     05023           25015
+125     05025            7514
+126     05027           22672
+127     05029           20873
+128     05031          112218
+129     05033           60378
+130     05035           47525
+131     05037           16681
+132     05039            6308
+133     05041           11090
+134     05043           17110
+135     05045          125106
+136     05047           17173
+137     05049           12145
+138     05051          100330
+139     05053           18090
+140     05055           46317
+141     05057           19694
+142     05059           33148
+143     05061           12698
+144     05063           37723
+145     05065           13911
+146     05067           16811
+147     05069           65861
+148     05071           25845
+149     05073            6163
+150     05075           16292
+151     05077            8619
+152     05079           13037
+153     05081           11944
+154     05083           21215
+155     05085           74722
+156     05087           16960
+157     05089           16978
+158     05091           42649
+159     05093           39661
+160     05095            6683
+161     05097            8611
+162     05099            8187
+163     05101            7204
+164     05103           22306
+165     05105            9964
+166     05107           15906
+167     05109           10066
+168     05111           22660
+169     05113           19353
+170     05115           63789
+171     05117            8135
+172     05119          397821
+173     05121           18865
+174     05123           22739
+175     05125          125233
+176     05127            9822
+177     05129            7880
+178     05131          128400
+179     05133           15783
+180     05135           17622
+181     05137           12481
+182     05139           38340
+183     05141           15694
+184     05143          250057
+185     05145           77207
+186     05147            6116
+187     05149           20155
+188     06001         1648556
+189     06003            1235
+190     06005           41259
+191     06007          208309
+192     06009           46221
+193     06011           21917
+194     06013         1161413
+195     06015           28100
+196     06017          193221
+197     06019         1013581
+198     06021           28805
+199     06023          136310
+200     06025          179851
+201     06027           18970
+202     06029          917673
+203     06031          153443
+204     06033           68766
+205     06035           33159
+206     06037         9829544
+207     06039          159410
+208     06041          260206
+209     06043           17147
+210     06045           91305
+211     06047          286461
+212     06049            8661
+213     06051           13247
+214     06053          437325
+215     06055          136207
+216     06057          103487
+217     06059         3167809
+218     06061          412300
+219     06063           19915
+220     06065         2458395
+221     06067         1588921
+222     06069           66677
+223     06071         2194710
+224     06073         3286069
+225     06075          815201
+226     06077          789410
+227     06079          283159
+228     06081          737888
+229     06083          446475
+230     06085         1885508
+231     06087          267792
+232     06089          182139
+233     06091            3283
+234     06093           44118
+235     06095          451716
+236     06097          485887
+237     06099          552999
+238     06101           99063
+239     06103           65498
+240     06105           16060
+241     06107          477054
+242     06109           55810
+243     06111          839784
+244     06113          216986
+245     06115           83421
+246     08001          522140
+247     08003           16547
+248     08005          654900
+249     08007           13790
+250     08009            3514
+251     08011            5759
+252     08013          329543
+253     08014           75325
+254     08015           20074
+255     08017            1707
+256     08019            9446
+257     08021            7612
+258     08023            3625
+259     08025            6012
+260     08027            5045
+261     08029           31661
+262     08031          711463
+263     08033            2397
+264     08035          368990
+265     08037           55727
+266     08039           27128
+267     08041          737867
+268     08043           49661
+269     08045           62161
+270     08047            5873
+271     08049           15860
+272     08051           17281
+273     08053             781
+274     08055            6920
+275     08057            1363
+276     08059          579581
+277     08061            1452
+278     08063            6950
+279     08065            7407
+280     08067           56250
+281     08069          362533
+282     08071           14633
+283     08073            5688
+284     08075           21487
+285     08077          157335
+286     08079             924
+287     08081           13185
+288     08083           26175
+289     08085           43168
+290     08087           29008
+291     08089           18594
+292     08091            5035
+293     08093           17720
+294     08095            4512
+295     08097           17348
+296     08099           11996
+297     08101          169622
+298     08103            6476
+299     08105           11408
+300     08107           25091
+301     08109            6471
+302     08111             733
+303     08113            8074
+304     08115            2336
+305     08117           30941
+306     08119           24926
+307     08121            4861
+308     08123          340036
+309     08125            9941
+310     09001          959768
+311     09003          896854
+312     09005          185000
+313     09007          164759
+314     09009          863700
+315     09011          268805
+316     09013          150293
+317     09015          116418
+318     10001          184149
+319     10003          571708
+320     10005          247527
+321     12001          279238
+322     12003           28715
+323     12005          179168
+324     12007           28540
+325     12009          616628
+326     12011         1930983
+327     12013           13641
+328     12015          194843
+329     12017          158083
+330     12019          222361
+331     12021          385980
+332     12023           70385
+333     12027           34408
+334     12029           17102
+335     12031          999935
+336     12033          322390
+337     12035          120932
+338     12037           12572
+339     12039           43714
+340     12041           18360
+341     12043           12234
+342     12045           14363
+343     12047           13993
+344     12049           25425
+345     12051           40313
+346     12053          200638
+347     12055          103296
+348     12057         1478194
+349     12059           19784
+350     12061          163662
+351     12063           47694
+352     12065           14555
+353     12067            8382
+354     12069          395804
+355     12071          787976
+356     12073          292817
+357     12075           44158
+358     12077            7900
+359     12079           18288
+360     12081          412703
+361     12083          385915
+362     12085          159942
+363     12086         2662777
+364     12087           82170
+365     12089           94189
+366     12091          213255
+367     12093           40266
+368     12095         1422746
+369     12097          403282
+370     12099         1497987
+371     12101          584067
+372     12103          956615
+373     12105          753520
+374     12107           74167
+375     12109          292466
+376     12111          343579
+377     12113          193998
+378     12115          447057
+379     12117          470093
+380     12119          135638
+381     12121           44485
+382     12123           21815
+383     12125           16335
+384     12127          564412
+385     12129           34690
+386     12131           80069
+387     12133           25436
+388     13001           18488
+389     13003            8391
+390     13005           11079
+391     13007            2819
+392     13009           43781
+393     13011           18562
+394     13013           86658
+395     13015          110843
+396     13017           17158
+397     13019           18147
+398     13021          156762
+399     13023           12607
+400     13025           18101
+401     13027           16270
+402     13029           46938
+403     13031           82442
+404     13033           24310
+405     13035           25781
+406     13037            5509
+407     13039           55664
+408     13043           11037
+409     13045          121968
+410     13047           68397
+411     13049           12766
+412     13051          296329
+413     13053            9048
+414     13055           24932
+415     13057          274615
+416     13059          128711
+417     13061            2882
+418     13063          297100
+419     13065            6725
+420     13067          766802
+421     13069           43386
+422     13071           45812
+423     13073          159639
+424     13075           17225
+425     13077          149956
+426     13079           12153
+427     13081           19879
+428     13083           16326
+429     13085           28497
+430     13087           29038
+431     13089          757718
+432     13091           19759
+433     13093           10885
+434     13095           84844
+435     13097          145814
+436     13099           10619
+437     13101            3699
+438     13103           66741
+439     13105           19579
+440     13107           22716
+441     13109           10672
+442     13111           25817
+443     13113          120574
+444     13115           98771
+445     13117          260206
+446     13119           23785
+447     13121         1065334
+448     13123           32026
+449     13125            2919
+450     13127           84739
+451     13129           58237
+452     13131           25918
+453     13133           19536
+454     13135          964546
+455     13137           46774
+456     13139          207369
+457     13141            8630
+458     13143           30572
+459     13145           35626
+460     13147           26409
+461     13149           11565
+462     13151          245235
+463     13153          166829
+464     13155            9618
+465     13157           80286
+466     13159           15278
+467     13161           14872
+468     13163           15524
+469     13165            8639
+470     13167            9160
+471     13169           28400
+472     13171           19080
+473     13173            9907
+474     13175           49547
+475     13177           33411
+476     13179           65711
+477     13181            7749
+478     13183           17152
+479     13185          119276
+480     13187           34278
+481     13189           21633
+482     13191           11123
+483     13193           12004
+484     13195           30885
+485     13197            7440
+486     13199           20793
+487     13201            5919
+488     13205           21521
+489     13207           28712
+490     13209            8653
+491     13211           20635
+492     13213           39951
+493     13215          205617
+494     13217          115355
+495     13219           43023
+496     13221           15140
+497     13223          173780
+498     13225           28417
+499     13227           34024
+500     13229           19976
+501     13231           19477
+502     13233           43496
+503     13235            9917
+504     13237           22585
+505     13239            2243
+506     13241           17119
+507     13243            6287
+508     13245          205673
+509     13247           94082
+510     13249            4478
+511     13251           14105
+512     13253            9197
+513     13255           67909
+514     13257           26865
+515     13259            5341
+516     13261           29283
+517     13263            5742
+518     13265            1558
+519     13267           23052
+520     13269            7799
+521     13271           12414
+522     13273            8964
+523     13275           45842
+524     13277           41212
+525     13279           26911
+526     13281           12875
+527     13283            6306
+528     13285           69720
+529     13287            8966
+530     13289            7856
+531     13291           25521
+532     13293           27720
+533     13295           68510
+534     13297           99853
+535     13299           36033
+536     13301            5240
+537     13303           19785
+538     13305           30380
+539     13307            2367
+540     13309            7471
+541     13311           28442
+542     13313          102848
+543     13315            8739
+544     13317            9513
+545     13319            8831
+546     13321           20554
+547     15001          202906
+548     15003         1000890
+549     15005              82
+550     15007           73454
+551     15009          164221
+552     16001          511931
+553     16003            4625
+554     16005           88263
+555     16007            6545
+556     16009            9931
+557     16011           48876
+558     16013           24766
+559     16015            8094
+560     16017           49491
+561     16019          127930
+562     16021           12561
+563     16023            2654
+564     16025            1139
+565     16027          243115
+566     16029            7111
+567     16031           25164
+568     16033             792
+569     16035            8895
+570     16037            4428
+571     16039           28827
+572     16041           14666
+573     16043           13592
+574     16045           19792
+575     16047           15772
+576     16049           17040
+577     16051           32202
+578     16053           24662
+579     16055          179789
+580     16057           40313
+581     16059            8162
+582     16061            3715
+583     16063            5282
+584     16065           53881
+585     16067           21955
+586     16069           42454
+587     16071            4611
+588     16073           12336
+589     16075           26350
+590     16077            7950
+591     16079           13612
+592     16081           12267
+593     16083           92243
+594     16085           12241
+595     16087           10898
+596     17001           64954
+597     17003            5030
+598     17005           16596
+599     17007           53159
+600     17009            6421
+601     17011           32883
+602     17013            4369
+603     17015           15698
+604     17017           12773
+605     17019          205943
+606     17021           33662
+607     17023           15300
+608     17025           13143
+609     17027           36793
+610     17029           46765
+611     17031         5173146
+612     17033           18659
+613     17035           10345
+614     17037          100414
+615     17039           15341
+616     17041           19722
+617     17043          924885
+618     17045           16520
+619     17047            6075
+620     17049           34430
+621     17051           21384
+622     17053           13511
+623     17055           37442
+624     17057           33197
+625     17059            4903
+626     17061           11843
+627     17063           52989
+628     17065            7911
+629     17067           17400
+630     17069            3650
+631     17071            6312
+632     17073           48907
+633     17075           26827
+634     17077           52565
+635     17079            9193
+636     17081           36877
+637     17083           21333
+638     17085           21939
+639     17087           13463
+640     17089          515588
+641     17091          106601
+642     17093          134867
+643     17095           49268
+644     17097          711239
+645     17099          108965
+646     17101           15152
+647     17103           34049
+648     17105           35664
+649     17107           27992
+650     17109           26828
+651     17111          311122
+652     17113          170889
+653     17115          102432
+654     17117           44406
+655     17119          264490
+656     17121           37390
+657     17123           11663
+658     17125           12881
+659     17127           13960
+660     17129           12164
+661     17131           15582
+662     17133           34932
+663     17135           28084
+664     17137           32606
+665     17139           14510
+666     17141           51449
+667     17143          179432
+668     17145           20985
+669     17147           16753
+670     17149           14618
+671     17151            3779
+672     17153            5065
+673     17155            5566
+674     17157           30142
+675     17159           15796
+676     17161          142909
+677     17163          254796
+678     17165           23320
+679     17167          194734
+680     17169            6843
+681     17171            4836
+682     17173           20789
+683     17175            5294
+684     17177           44021
+685     17179          130413
+686     17181           16923
+687     17183           73095
+688     17185           11202
+689     17187           16531
+690     17189           13655
+691     17191           15963
+692     17193           13784
+693     17195           55305
+694     17197          697252
+695     17199           66879
+696     17201          283119
+697     17203           38225
+698     18001           35961
+699     18003          388608
+700     18005           82475
+701     18007            8714
+702     18009           12091
+703     18011           73052
+704     18013           15552
+705     18015           20444
+706     18017           37563
+707     18019          122738
+708     18021           26410
+709     18023           33065
+710     18025           10514
+711     18027           33397
+712     18029           50816
+713     18031           26320
+714     18033           43333
+715     18035          111871
+716     18037           43549
+717     18039          206921
+718     18041           23360
+719     18043           80454
+720     18045           16427
+721     18047           22842
+722     18049           20386
+723     18051           32924
+724     18053           66263
+725     18055           30786
+726     18057          356650
+727     18059           81789
+728     18061           39761
+729     18063          179355
+730     18065           48935
+731     18067           83687
+732     18069           36717
+733     18071           46067
+734     18073           33091
+735     18075           20248
+736     18077           33141
+737     18079           27409
+738     18081          164298
+739     18083           35956
+740     18085           80106
+741     18087           40524
+742     18089          498558
+743     18091          112390
+744     18093           45070
+745     18095          130782
+746     18097          971102
+747     18099           46121
+748     18101            9780
+749     18103           36081
+750     18105          139875
+751     18107           38063
+752     18109           72206
+753     18111           13808
+754     18113           47227
+755     18115            5978
+756     18117           19830
+757     18119           21446
+758     18121           16407
+759     18123           19316
+760     18125           12144
+761     18127          174243
+762     18129           25116
+763     18131           12339
+764     18133           36979
+765     18135           24387
+766     18137           29081
+767     18139           16672
+768     18141          272212
+769     18143           24355
+770     18145           45039
+771     18147           19798
+772     18149           23372
+773     18151           34632
+774     18153           20758
+775     18155            9790
+776     18157          187076
+777     18159           15372
+778     18161            7047
+779     18163          179987
+780     18165           15341
+781     18167          105994
+782     18169           30816
+783     18171            8475
+784     18173           64514
+785     18175           28102
+786     18177           66456
+787     18179           28197
+788     18181           24651
+789     18183           34430
+790     19001            7541
+791     19003            3641
+792     19005           13926
+793     19007           12257
+794     19009            5635
+795     19011           25691
+796     19013          130368
+797     19015           26723
+798     19017           25081
+799     19019           20657
+800     19021           20771
+801     19023           14332
+802     19025            9915
+803     19027           20692
+804     19029           13050
+805     19031           18410
+806     19033           42706
+807     19035           11503
+808     19037           11887
+809     19039            9785
+810     19041           16440
+811     19043           16998
+812     19045           46463
+813     19047           16193
+814     19049          103796
+815     19051            9138
+816     19053            7659
+817     19055           17510
+818     19057           38491
+819     19059           17851
+820     19061           98718
+821     19063            9321
+822     19065           19258
+823     19067           15413
+824     19069            9952
+825     19071            6567
+826     19073            8717
+827     19075           12347
+828     19077           10567
+829     19079           14887
+830     19081           10663
+831     19083           16708
+832     19085           14669
+833     19087           20387
+834     19089            9478
+835     19091            9634
+836     19093            6956
+837     19095           16568
+838     19097           19368
+839     19099           37764
+840     19101           15647
+841     19103          154748
+842     19105           20805
+843     19107            9914
+844     19109           14529
+845     19111           33215
+846     19113          228939
+847     19115           10749
+848     19117            8710
+849     19119           12011
+850     19121           16773
+851     19123           21984
+852     19125           33380
+853     19127           39853
+854     19129           14465
+855     19131           10555
+856     19133            8574
+857     19135            7610
+858     19137           10322
+859     19139           42688
+860     19141           14015
+861     19143            6159
+862     19145           15197
+863     19147            8906
+864     19149           25650
+865     19151            7074
+866     19153          496844
+867     19155           93304
+868     19157           18586
+869     19159            4639
+870     19161            9752
+871     19163          174170
+872     19165           11770
+873     19167           35893
+874     19169           99472
+875     19171           16867
+876     19173            5868
+877     19175           12018
+878     19177            7243
+879     19179           35256
+880     19181           53402
+881     19183           22491
+882     19185            6508
+883     19187           37147
+884     19189           10656
+885     19191           19892
+886     19193          105607
+887     19195            7385
+888     19197           12785
+889     20001           12464
+890     20003            7778
+891     20005           16239
+892     20007            4110
+893     20009           25216
+894     20011           14323
+895     20013            9455
+896     20015           67889
+897     20017            2598
+898     20019            3395
+899     20021           19130
+900     20023            2633
+901     20025            1977
+902     20027            8077
+903     20029            8928
+904     20031            8338
+905     20033            1670
+906     20035           34496
+907     20037           39110
+908     20039            2751
+909     20041           18459
+910     20043            7471
+911     20045          119363
+912     20047            2832
+913     20049            2441
+914     20051           28790
+915     20053            6336
+916     20055           38107
+917     20057           34159
+918     20059           25986
+919     20061           35934
+920     20063            2755
+921     20065            2400
+922     20067            7324
+923     20069            5644
+924     20071            1304
+925     20073            5939
+926     20075            2484
+927     20077            5331
+928     20079           33817
+929     20081            3668
+930     20083            1710
+931     20085           13261
+932     20087           18411
+933     20089            2937
+934     20091          613219
+935     20093            3891
+936     20095            7392
+937     20097            2392
+938     20099           19912
+939     20101            1565
+940     20103           82184
+941     20105            2903
+942     20107            9747
+943     20109            2722
+944     20111           31998
+945     20113           30146
+946     20115           11712
+947     20117            9979
+948     20119            4022
+949     20121           34593
+950     20123            5748
+951     20125           31156
+952     20127            5356
+953     20129            2692
+954     20131           10216
+955     20133           15784
+956     20135            2672
+957     20137            5342
+958     20139           15768
+959     20141            3498
+960     20143            5838
+961     20145            6225
+962     20147            4815
+963     20149           25790
+964     20151            9181
+965     20153            2549
+966     20155           61414
+967     20157            4662
+968     20159            9390
+969     20161           72208
+970     20163            4831
+971     20165            2953
+972     20167            6703
+973     20169           53888
+974     20171            5131
+975     20173          523828
+976     20175           21747
+977     20177          178264
+978     20179            2478
+979     20181            5895
+980     20183            3576
+981     20185            4034
+982     20187            2044
+983     20189            5293
+984     20191           22385
+985     20193            7877
+986     20195            2793
+987     20197            6966
+988     20199            1508
+989     20201            5511
+990     20203            2082
+991     20205            8526
+992     20207            3102
+993     20209          167046
+994     21001           18932
+995     21003           20797
+996     21005           24035
+997     21007            7695
+998     21009           44544
+999     21011           12778
+1000    21013           23858
+1001    21015          137412
+1002    21017           20229
+1003    21019           47899
+1004    21021           30747
+1005    21023            8439
+1006    21025           13553
+1007    21027           20651
+1008    21029           82918
+1009    21031           12294
+1010    21033           12624
+1011    21035           37560
+1012    21037           93050
+1013    21039            4791
+1014    21041           10863
+1015    21043           26412
+1016    21045           15866
+1017    21047           72357
+1018    21049           36871
+1019    21051           20206
+1020    21053            9265
+1021    21055            8947
+1022    21057            5879
+1023    21059          103063
+1024    21061           12291
+1025    21063            7381
+1026    21065           14092
+1027    21067          321793
+1028    21069           15224
+1029    21071           35274
+1030    21073           51682
+1031    21075            6512
+1032    21077            8775
+1033    21079           17362
+1034    21081           25244
+1035    21083           36615
+1036    21085           26524
+1037    21087           11291
+1038    21089           35649
+1039    21091            9064
+1040    21093          111607
+1041    21095           26164
+1042    21097           18950
+1043    21099           19460
+1044    21101           44329
+1045    21103           15657
+1046    21105            4424
+1047    21107           45138
+1048    21109           12984
+1049    21111          777874
+1050    21113           53626
+1051    21115           22556
+1052    21117          169495
+1053    21119           14053
+1054    21121           29909
+1055    21123           15028
+1056    21125           62561
+1057    21127           16290
+1058    21129            7451
+1059    21131           10278
+1060    21133           21253
+1061    21135           12987
+1062    21137           24243
+1063    21139            8959
+1064    21141           27771
+1065    21143            8803
+1066    21145           67454
+1067    21147           16892
+1068    21149            9100
+1069    21151           94666
+1070    21153           11497
+1071    21155           19725
+1072    21157           31748
+1073    21159           11140
+1074    21161           16931
+1075    21163           30131
+1076    21165            6194
+1077    21167           22850
+1078    21169           10349
+1079    21171           11233
+1080    21173           28219
+1081    21175           13820
+1082    21177           30694
+1083    21179           47098
+1084    21181            7712
+1085    21183           23688
+1086    21185           68685
+1087    21187           11294
+1088    21189            3953
+1089    21191           14607
+1090    21193           27929
+1091    21195           57391
+1092    21197           13133
+1093    21199           65423
+1094    21201            2257
+1095    21203           16115
+1096    21205           24861
+1097    21207           18156
+1098    21209           58252
+1099    21211           48461
+1100    21213           19718
+1101    21215           19916
+1102    21217           26235
+1103    21219           12285
+1104    21221           14192
+1105    21223            8530
+1106    21225           13544
+1107    21227          137212
+1108    21229           12072
+1109    21231           19540
+1110    21233           12813
+1111    21235           36939
+1112    21237            6507
+1113    21239           27075
+1114    22001           57288
+1115    22003           22687
+1116    22005          128369
+1117    22007           20689
+1118    22009           39236
+1119    22011           36584
+1120    22013           12776
+1121    22015          129144
+1122    22017          233092
+1123    22019          205282
+1124    22021            9571
+1125    22023            5080
+1126    22025            8805
+1127    22027           14038
+1128    22029           18376
+1129    22031           26919
+1130    22033          453301
+1131    22035            7220
+1132    22037           19338
+1133    22039           32215
+1134    22041           19668
+1135    22043           22236
+1136    22045           68975
+1137    22047           29824
+1138    22049           14876
+1139    22051          433688
+1140    22053           32345
+1141    22055          244205
+1142    22057           97504
+1143    22059           14834
+1144    22061           48152
+1145    22063          145830
+1146    22065            9799
+1147    22067           25025
+1148    22069           37026
+1149    22071          376971
+1150    22073          158768
+1151    22075           23303
+1152    22077           20356
+1153    22079          128654
+1154    22081            7564
+1155    22083           19805
+1156    22085           22135
+1157    22087           44258
+1158    22089           52282
+1159    22091           10912
+1160    22093           19742
+1161    22095           42094
+1162    22097           82071
+1163    22099           51540
+1164    22101           48232
+1165    22103          269388
+1166    22105          135217
+1167    22107            4043
+1168    22109          108708
+1169    22111           21091
+1170    22113           57204
+1171    22115           48027
+1172    22117           45133
+1173    22119           36184
+1174    22121           27792
+1175    22123            9594
+1176    22125           15494
+1177    22127           13488
+1178    23001          111034
+1179    23003           66859
+1180    23005          305231
+1181    23007           29687
+1182    23009           56192
+1183    23011          124486
+1184    23013           41084
+1185    23015           35828
+1186    23017           58629
+1187    23019          152765
+1188    23021           17165
+1189    23023           37071
+1190    23025           50592
+1191    23027           39912
+1192    23029           31121
+1193    23031          214591
+1194    24001           67729
+1195    24003          590336
+1196    24005          849316
+1197    24009           93928
+1198    24011           33386
+1199    24013          173873
+1200    24015          103905
+1201    24017          168698
+1202    24019           32489
+1203    24021          279835
+1204    24023           28702
+1205    24025          262977
+1206    24027          334529
+1207    24029           19270
+1208    24031         1054827
+1209    24033          955306
+1210    24035           50798
+1211    24037          114468
+1212    24039           24584
+1213    24041           37626
+1214    24043          154937
+1215    24045          103980
+1216    24047           53132
+1217    24510          576498
+1218    25001          232411
+1219    25003          128657
+1220    25005          580164
+1221    25007           21097
+1222    25009          807074
+1223    25011           71015
+1224    25013          462718
+1225    25015          161572
+1226    25017         1614742
+1227    25019           14491
+1228    25021          724505
+1229    25023          533003
+1230    25025          771245
+1231    25027          862029
+1232    26001           10235
+1233    26003            8821
+1234    26005          120950
+1235    26007           28893
+1236    26009           23813
+1237    26011           14975
+1238    26013            8215
+1239    26015           62992
+1240    26017          102985
+1241    26019           18223
+1242    26021          153101
+1243    26023           44985
+1244    26025          133819
+1245    26027           51483
+1246    26029           26086
+1247    26031           25752
+1248    26033           36816
+1249    26035           31065
+1250    26037           79426
+1251    26039           13204
+1252    26041           36826
+1253    26043           25787
+1254    26045          108944
+1255    26047           34225
+1256    26049          404208
+1257    26051           25485
+1258    26053           14361
+1259    26055           95860
+1260    26057           41544
+1261    26059           45546
+1262    26061           37313
+1263    26063           31252
+1264    26065          284034
+1265    26067           67197
+1266    26069           25369
+1267    26071           11635
+1268    26073           64813
+1269    26075          160050
+1270    26077          261108
+1271    26079           17979
+1272    26081          658046
+1273    26083            2107
+1274    26085           12308
+1275    26087           88513
+1276    26089           22623
+1277    26091           98956
+1278    26093          195014
+1279    26095            5309
+1280    26097           10906
+1281    26099          876792
+1282    26101           25350
+1283    26103           66103
+1284    26105           29383
+1285    26107           40031
+1286    26109           23299
+1287    26111           83457
+1288    26113           15130
+1289    26115          155274
+1290    26117           67220
+1291    26119            9297
+1292    26121          176511
+1293    26123           50296
+1294    26125         1270017
+1295    26127           26815
+1296    26129           20726
+1297    26131            5868
+1298    26133           23105
+1299    26135            8311
+1300    26137           25289
+1301    26139          299157
+1302    26141           13093
+1303    26143           23633
+1304    26145          189591
+1305    26147          160053
+1306    26149           60758
+1307    26151           40506
+1308    26153            8030
+1309    26155           67877
+1310    26157           52917
+1311    26159           75658
+1312    26161          369390
+1313    26163         1774816
+1314    26165           33901
+1315    27001           15887
+1316    27003          367018
+1317    27005           35219
+1318    27007           46380
+1319    27009           41459
+1320    27011            5145
+1321    27013           69280
+1322    27015           25819
+1323    27017           36409
+1324    27019          108626
+1325    27021           30639
+1326    27023           12357
+1327    27025           57469
+1328    27027           65574
+1329    27029            8576
+1330    27031            5617
+1331    27033           11569
+1332    27035           67270
+1333    27037          442038
+1334    27039           20935
+1335    27041           39238
+1336    27043           13909
+1337    27045           21271
+1338    27047           30749
+1339    27049           47968
+1340    27051            6153
+1341    27053         1267416
+1342    27055           18778
+1343    27057           21715
+1344    27059           41906
+1345    27061           45070
+1346    27063            9990
+1347    27065           16159
+1348    27067           43767
+1349    27069            4146
+1350    27071           11941
+1351    27073            6684
+1352    27075           10986
+1353    27077            3823
+1354    27079           28841
+1355    27081            5567
+1356    27083           25231
+1357    27085           36735
+1358    27087            5414
+1359    27089            8988
+1360    27091           19915
+1361    27093           23376
+1362    27095           26867
+1363    27097           33992
+1364    27099           40158
+1365    27101            8144
+1366    27103           34332
+1367    27105           21991
+1368    27107            6416
+1369    27109          163436
+1370    27111           60046
+1371    27113           13780
+1372    27115           29302
+1373    27117            9313
+1374    27119           30757
+1375    27121           11403
+1376    27123          543257
+1377    27125            3933
+1378    27127           15366
+1379    27129           14608
+1380    27131           67262
+1381    27133            9680
+1382    27135           15258
+1383    27137          199182
+1384    27139          153268
+1385    27141           99074
+1386    27143           14917
+1387    27145          158947
+1388    27147           37349
+1389    27149            9700
+1390    27151            9749
+1391    27153           25237
+1392    27155            3286
+1393    27157           21509
+1394    27159           14177
+1395    27161           19000
+1396    27163          272256
+1397    27165           11135
+1398    27167            6395
+1399    27169           49630
+1400    27171          144845
+1401    27173            9411
+1402    28001           28742
+1403    28003           34349
+1404    28005           12637
+1405    28007           17742
+1406    28009            7646
+1407    28011           30308
+1408    28013           13018
+1409    28015            9879
+1410    28017           17011
+1411    28019            8106
+1412    28021            8908
+1413    28023           15421
+1414    28025           18535
+1415    28027           20810
+1416    28029           27995
+1417    28031           18279
+1418    28033          188633
+1419    28035           77875
+1420    28037            7676
+1421    28039           24762
+1422    28041           13630
+1423    28043           21365
+1424    28045           46055
+1425    28047          209396
+1426    28049          222679
+1427    28051           16496
+1428    28053            7551
+1429    28055            1280
+1430    28057           23838
+1431    28059          143987
+1432    28061           16291
+1433    28063            7205
+1434    28065           11134
+1435    28067           66744
+1436    28069            8829
+1437    28071           56884
+1438    28073           65353
+1439    28075           72088
+1440    28077           11812
+1441    28079           21196
+1442    28081           82883
+1443    28083           27557
+1444    28085           34943
+1445    28087           58150
+1446    28089          109813
+1447    28091           24378
+1448    28093           33725
+1449    28095           33883
+1450    28097            9729
+1451    28099           28993
+1452    28101           21056
+1453    28103           10123
+1454    28105           51842
+1455    28107           32851
+1456    28109           56503
+1457    28111           11571
+1458    28113           39973
+1459    28115           31445
+1460    28117           24996
+1461    28119            5935
+1462    28121          158096
+1463    28123           27598
+1464    28125            3663
+1465    28127           25750
+1466    28129           14191
+1467    28131           18644
+1468    28133           25402
+1469    28135           12366
+1470    28137           28234
+1471    28139           21635
+1472    28141           18750
+1473    28143            9696
+1474    28145           27953
+1475    28147           13836
+1476    28149           43579
+1477    28151           43687
+1478    28153           19709
+1479    28155            9983
+1480    28157            8315
+1481    28159           17596
+1482    28161           12415
+1483    28163           26373
+1484    29001           25185
+1485    29003           18002
+1486    29005            5234
+1487    29007           24982
+1488    29009           34712
+1489    29011           11658
+1490    29013           16105
+1491    29015           19908
+1492    29017           10556
+1493    29019          185840
+1494    29021           83853
+1495    29023           42101
+1496    29025            8897
+1497    29027           44638
+1498    29029           43436
+1499    29031           82113
+1500    29033            8376
+1501    29035            5320
+1502    29037          109638
+1503    29039           14496
+1504    29041            7356
+1505    29043           91499
+1506    29045            6736
+1507    29047          255518
+1508    29049           21287
+1509    29051           77205
+1510    29053           17115
+1511    29055           22807
+1512    29057            7599
+1513    29059           17341
+1514    29061            8399
+1515    29063           11098
+1516    29065           14432
+1517    29067           11732
+1518    29069           27717
+1519    29071          105231
+1520    29073           14791
+1521    29075            6173
+1522    29077          300865
+1523    29079            9720
+1524    29081            8164
+1525    29083           22206
+1526    29085            8607
+1527    29087            4226
+1528    29089           10168
+1529    29091           39975
+1530    29093            9408
+1531    29095          716862
+1532    29097          123155
+1533    29099          227771
+1534    29101           54150
+1535    29103            3808
+1536    29105           36133
+1537    29107           32817
+1538    29109           38321
+1539    29111           10000
+1540    29113           61586
+1541    29115           11843
+1542    29117           14755
+1543    29119           23383
+1544    29121           15183
+1545    29123           12652
+1546    29125            8406
+1547    29127           28518
+1548    29129            3488
+1549    29131           24909
+1550    29133           12538
+1551    29135           15484
+1552    29137            8712
+1553    29139           11415
+1554    29141           21379
+1555    29143           16035
+1556    29145           59386
+1557    29147           21160
+1558    29149            8631
+1559    29151           13379
+1560    29153            8782
+1561    29155           15236
+1562    29157           18922
+1563    29159           43188
+1564    29161           44937
+1565    29163           17761
+1566    29165          108569
+1567    29167           32043
+1568    29169           53816
+1569    29171            4712
+1570    29173           10361
+1571    29175           24760
+1572    29177           23008
+1573    29179            6087
+1574    29181           10617
+1575    29183          409981
+1576    29185            9376
+1577    29186           18588
+1578    29187           67541
+1579    29189          997187
+1580    29195           23289
+1581    29197            4025
+1582    29199            4693
+1583    29201           37840
+1584    29203            7106
+1585    29205            5976
+1586    29207           28479
+1587    29209           31548
+1588    29211            5934
+1589    29213           56387
+1590    29215           24987
+1591    29217           19595
+1592    29219           36518
+1593    29221           23502
+1594    29223           10914
+1595    29225           39735
+1596    29227            1983
+1597    29229           18610
+1598    29510          293310
+1599    30001            9524
+1600    30003           12957
+1601    30005            6980
+1602    30007            7288
+1603    30009           10847
+1604    30011            1428
+1605    30013           84511
+1606    30015            5916
+1607    30017           11916
+1608    30019            1686
+1609    30021            8904
+1610    30023            9491
+1611    30025            3017
+1612    30027           11617
+1613    30029          108454
+1614    30031          122713
+1615    30033            1209
+1616    30035           13785
+1617    30037             831
+1618    30039            3344
+1619    30041           16179
+1620    30043           12470
+1621    30045            2044
+1622    30047           32033
+1623    30049           72223
+1624    30051            1946
+1625    30053           20525
+1626    30055            1718
+1627    30057            8917
+1628    30059            1964
+1629    30061            4860
+1630    30063          119533
+1631    30065            4896
+1632    30067           17473
+1633    30069             519
+1634    30071            4192
+1635    30073            5994
+1636    30075            1702
+1637    30077            6999
+1638    30079            1091
+1639    30081           45959
+1640    30083           11283
+1641    30085           10821
+1642    30087            8124
+1643    30089           12959
+1644    30091            3527
+1645    30093           35411
+1646    30095            9044
+1647    30097            3723
+1648    30099            6269
+1649    30101            5011
+1650    30103             768
+1651    30105            7537
+1652    30107            2059
+1653    30109             934
+1654    30111          167146
+1655    31001           31027
+1656    31003            6279
+1657    31005             439
+1658    31007             692
+1659    31009             461
+1660    31011            5386
+1661    31013           10604
+1662    31015            1789
+1663    31017            2908
+1664    31019           50339
+1665    31021            6709
+1666    31023            8444
+1667    31025           27017
+1668    31027            8330
+1669    31029            3826
+1670    31031            5458
+1671    31033            9529
+1672    31035            6078
+1673    31037           10498
+1674    31039            8984
+1675    31041           10460
+1676    31043           21241
+1677    31045            8148
+1678    31047           23898
+1679    31049            1865
+1680    31051            5545
+1681    31053           37103
+1682    31055          585008
+1683    31057            1635
+1684    31059            5546
+1685    31061            2903
+1686    31063            2555
+1687    31065            4604
+1688    31067           21616
+1689    31069            1847
+1690    31071            1839
+1691    31073            1824
+1692    31075             579
+1693    31077            2169
+1694    31079           61979
+1695    31081            9386
+1696    31083            3091
+1697    31085             843
+1698    31087            2586
+1699    31089           10049
+1700    31091             734
+1701    31093            6531
+1702    31095            7176
+1703    31097            5316
+1704    31099            6674
+1705    31101            8279
+1706    31103             787
+1707    31105            3412
+1708    31107            8401
+1709    31109          324514
+1710    31111           34133
+1711    31113             687
+1712    31115             604
+1713    31117             379
+1714    31119           35337
+1715    31121            7665
+1716    31123            4574
+1717    31125            3390
+1718    31127            7064
+1719    31129            4060
+1720    31131           15930
+1721    31133            2548
+1722    31135            2832
+1723    31137            8937
+1724    31139            7313
+1725    31141           34241
+1726    31143            5174
+1727    31145           10623
+1728    31147            7759
+1729    31149            1264
+1730    31151           14192
+1731    31153          193418
+1732    31155           22787
+1733    31157           35745
+1734    31159           17603
+1735    31161            5095
+1736    31163            2964
+1737    31165            1143
+1738    31167            5816
+1739    31169            4913
+1740    31171             673
+1741    31173            6620
+1742    31175            4066
+1743    31177           20969
+1744    31179            9784
+1745    31181            3411
+1746    31183             795
+1747    31185           14244
+1748    32001           25723
+1749    32003         2292476
+1750    32005           49870
+1751    32007           53915
+1752    32009             743
+1753    32011            1903
+1754    32013           17648
+1755    32015            5798
+1756    32017            4525
+1757    32019           60903
+1758    32021            4586
+1759    32023           53450
+1760    32027            6741
+1761    32029            4143
+1762    32031          493392
+1763    32033            9182
+1764    32510           58993
+1765    33001           64460
+1766    33003           51500
+1767    33005           77329
+1768    33007           31289
+1769    33009           92201
+1770    33011          424079
+1771    33013          155238
+1772    33015          316947
+1773    33017          132416
+1774    33019           43533
+1775    34001          274966
+1776    34003          953819
+1777    34005          464269
+1778    34007          523771
+1779    34009           95661
+1780    34011          153627
+1781    34013          854917
+1782    34015          304477
+1783    34017          702463
+1784    34019          129924
+1785    34021          385898
+1786    34023          860807
+1787    34025          645354
+1788    34027          510981
+1789    34029          648998
+1790    34031          518117
+1791    34033           65046
+1792    34035          345647
+1793    34037          145543
+1794    34039          572114
+1795    34041          110731
+1796    35001          674393
+1797    35003            3731
+1798    35005           64629
+1799    35006           27184
+1800    35007           12369
+1801    35009           47999
+1802    35011            1680
+1803    35013          221508
+1804    35015           60911
+1805    35017           27889
+1806    35019            4449
+1807    35021             639
+1808    35023            4074
+1809    35025           73004
+1810    35027           20436
+1811    35028           19330
+1812    35029           25532
+1813    35031           71780
+1814    35033            4196
+1815    35035           68537
+1816    35037            8656
+1817    35039           40179
+1818    35041           19019
+1819    35043          151369
+1820    35045          120993
+1821    35047           27150
+1822    35049          155201
+1823    35051           11502
+1824    35053           16311
+1825    35055           34623
+1826    35057           15307
+1827    35059            4107
+1828    35061           77190
+1829    36001          313743
+1830    36003           46106
+1831    36005         1424948
+1832    36007          197240
+1833    36009           76426
+1834    36011           75880
+1835    36013          126807
+1836    36015           83045
+1837    36017           46537
+1838    36019           79596
+1839    36021           61778
+1840    36023           46311
+1841    36025           44378
+1842    36027          297112
+1843    36029          950683
+1844    36031           37268
+1845    36033           47456
+1846    36035           53116
+1847    36037           57853
+1848    36039           48499
+1849    36041            5119
+1850    36043           59937
+1851    36045          116295
+1852    36047         2641052
+1853    36049           26573
+1854    36051           61578
+1855    36053           67658
+1856    36055          755160
+1857    36057           49558
+1858    36059         1390907
+1859    36061         1576876
+1860    36063          211653
+1861    36065          230274
+1862    36067          473236
+1863    36069          112508
+1864    36071          404525
+1865    36073           40191
+1866    36075          117387
+1867    36077           58123
+1868    36079           97936
+1869    36081         2331143
+1870    36083          160232
+1871    36085          493494
+1872    36087          339227
+1873    36089          108051
+1874    36091          237359
+1875    36093          158089
+1876    36095           29863
+1877    36097           17752
+1878    36099           33688
+1879    36101           92948
+1880    36103         1526344
+1881    36105           79806
+1882    36107           47980
+1883    36109          105162
+1884    36111          182951
+1885    36113           65618
+1886    36115           60956
+1887    36117           90923
+1888    36119          997895
+1889    36121           40491
+1890    36123           24613
+1891    37001          173877
+1892    37003           36644
+1893    37005           11049
+1894    37007           22060
+1895    37009           26711
+1896    37011           17864
+1897    37013           44468
+1898    37015           17505
+1899    37017           29525
+1900    37019          144215
+1901    37021          271534
+1902    37023           87611
+1903    37025          231278
+1904    37027           80463
+1905    37029           10835
+1906    37031           68541
+1907    37033           22714
+1908    37035          161723
+1909    37037           77889
+1910    37039           29167
+1911    37041           13722
+1912    37043           11309
+1913    37045          100359
+1914    37047           50092
+1915    37049          100674
+1916    37051          335508
+1917    37053           29653
+1918    37055           37826
+1919    37057          170637
+1920    37059           43533
+1921    37061           48515
+1922    37063          326126
+1923    37065           48359
+1924    37067          385523
+1925    37069           71703
+1926    37071          230856
+1927    37073           10366
+1928    37075            8043
+1929    37077           61986
+1930    37079           20417
+1931    37081          542410
+1932    37083           48272
+1933    37085          135966
+1934    37087           62476
+1935    37089          116829
+1936    37091           21278
+1937    37093           53114
+1938    37095            4508
+1939    37097          191968
+1940    37099           43410
+1941    37101          226504
+1942    37103            9255
+1943    37105           64138
+1944    37107           54706
+1945    37109           89670
+1946    37111           44717
+1947    37113           37564
+1948    37115           21502
+1949    37117           21754
+1950    37119         1122276
+1951    37121           14963
+1952    37123           25798
+1953    37125          102763
+1954    37127           95176
+1955    37129          229018
+1956    37131           17129
+1957    37133          206160
+1958    37135          148884
+1959    37137           12344
+1960    37139           40821
+1961    37141           62815
+1962    37143           13130
+1963    37145           39127
+1964    37147          172169
+1965    37149           19656
+1966    37151          145172
+1967    37153           42724
+1968    37155          116328
+1969    37157           91266
+1970    37159          148150
+1971    37161           64586
+1972    37163           58990
+1973    37165           34227
+1974    37167           63425
+1975    37169           44553
+1976    37171           71152
+1977    37173           14136
+1978    37175           33165
+1979    37177            3254
+1980    37179          243648
+1981    37181           42185
+1982    37183         1150204
+1983    37185           18762
+1984    37187           10892
+1985    37189           54234
+1986    37191          116835
+1987    37193           65806
+1988    37195           78369
+1989    37197           37192
+1990    37199           18757
+1991    38001            2167
+1992    38003           10806
+1993    38005            5809
+1994    38007             955
+1995    38009            6390
+1996    38011            2903
+1997    38013            2158
+1998    38015           98933
+1999    38017          186562
+2000    38019            3662
+2001    38021            4897
+2002    38023            2188
+2003    38025            4035
+2004    38027            2337
+2005    38029            3271
+2006    38031            3364
+2007    38033            1770
+2008    38035           72705
+2009    38037            2323
+2010    38039            2281
+2011    38041            2430
+2012    38043            2369
+2013    38045            4066
+2014    38047            1883
+2015    38049            5249
+2016    38051            2513
+2017    38053           13819
+2018    38055            9796
+2019    38057            8323
+2020    38059           33611
+2021    38061            9576
+2022    38063            3054
+2023    38065            1873
+2024    38067            6767
+2025    38069            3953
+2026    38071           11572
+2027    38073            5675
+2028    38075            2266
+2029    38077           16560
+2030    38079           12048
+2031    38081            3829
+2032    38083            1268
+2033    38085            3738
+2034    38087             690
+2035    38089           33046
+2036    38091            1810
+2037    38093           21576
+2038    38095            2140
+2039    38097            8003
+2040    38099           10469
+2041    38101           69071
+2042    38103            3905
+2043    38105           38484
+2044    39001           27542
+2045    39003          101670
+2046    39005           52316
+2047    39007           97337
+2048    39009           62056
+2049    39011           46141
+2050    39013           65849
+2051    39015           43662
+2052    39017          390234
+2053    39019           26691
+2054    39021           38699
+2055    39023          135633
+2056    39025          209642
+2057    39027           42004
+2058    39029          101310
+2059    39031           36618
+2060    39033           41754
+2061    39035         1249387
+2062    39037           51597
+2063    39039           38144
+2064    39041          220740
+2065    39043           74852
+2066    39045          161064
+2067    39047           28906
+2068    39049         1321414
+2069    39051           42450
+2070    39053           29158
+2071    39055           95565
+2072    39057          168412
+2073    39059           38287
+2074    39061          826139
+2075    39063           74656
+2076    39065           30621
+2077    39067           14477
+2078    39069           27538
+2079    39071           43354
+2080    39073           28097
+2081    39075           44271
+2082    39077           58367
+2083    39079           32511
+2084    39081           64789
+2085    39083           62897
+2086    39085          232023
+2087    39087           57445
+2088    39089          180401
+2089    39091           46035
+2090    39093          315595
+2091    39095          429191
+2092    39097           44386
+2093    39099          226762
+2094    39101           65291
+2095    39103          183092
+2096    39105           22049
+2097    39107           42309
+2098    39109          109264
+2099    39111           13329
+2100    39113          535840
+2101    39115           13682
+2102    39117           35151
+2103    39119           86408
+2104    39121           14176
+2105    39123           40104
+2106    39125           18871
+2107    39127           35460
+2108    39129           59333
+2109    39131           27089
+2110    39133          162382
+2111    39135           40867
+2112    39137           34318
+2113    39139          125195
+2114    39141           76891
+2115    39143           58715
+2116    39145           73346
+2117    39147           54906
+2118    39149           47977
+2119    39151          373834
+2120    39153          537633
+2121    39155          201335
+2122    39157           92500
+2123    39159           64971
+2124    39161           28732
+2125    39163           12696
+2126    39165          246553
+2127    39167           59423
+2128    39169          116710
+2129    39171           36716
+2130    39173          132472
+2131    39175           21708
+2132    40001           19414
+2133    40003            5710
+2134    40005           14324
+2135    40007            4980
+2136    40009           22046
+2137    40011            8562
+2138    40013           47105
+2139    40015           26368
+2140    40017          161737
+2141    40019           48291
+2142    40021           47627
+2143    40023           14307
+2144    40025            2248
+2145    40027          297597
+2146    40029            5276
+2147    40031          122063
+2148    40033            5480
+2149    40035           14115
+2150    40037           72029
+2151    40039           28163
+2152    40041           41000
+2153    40043            4417
+2154    40045            3762
+2155    40047           61926
+2156    40049           25804
+2157    40051           55508
+2158    40053            4131
+2159    40055            5487
+2160    40057            2418
+2161    40059            3180
+2162    40061           11602
+2163    40063           13405
+2164    40065           24777
+2165    40067            5438
+2166    40069           10301
+2167    40071           43732
+2168    40073           15204
+2169    40075            8410
+2170    40077            9427
+2171    40079           48476
+2172    40081           33829
+2173    40083           50885
+2174    40085           10216
+2175    40087           43516
+2176    40089           30884
+2177    40091           19245
+2178    40093            7668
+2179    40095           15594
+2180    40097           39159
+2181    40099           13718
+2182    40101           66146
+2183    40103           10933
+2184    40105            9303
+2185    40107           11197
+2186    40109          798575
+2187    40111           36843
+2188    40113           45772
+2189    40115           30340
+2190    40117           15741
+2191    40119           81989
+2192    40121           43633
+2193    40123           38163
+2194    40125           73019
+2195    40127           10815
+2196    40129            3386
+2197    40131           96695
+2198    40133           23567
+2199    40135           39508
+2200    40137           43129
+2201    40139           20865
+2202    40141            7076
+2203    40143          672858
+2204    40145           84050
+2205    40147           52772
+2206    40149           10915
+2207    40151            8583
+2208    40153           20205
+2209    41001           16847
+2210    41003           96017
+2211    41005          422537
+2212    41007           41810
+2213    41009           53074
+2214    41011           64999
+2215    41013           25739
+2216    41015           23683
+2217    41017          204801
+2218    41019          111978
+2219    41021            2005
+2220    41023            7272
+2221    41025            7575
+2222    41027           24057
+2223    41029          223734
+2224    41031           25068
+2225    41033           88346
+2226    41035           70164
+2227    41037            8276
+2228    41039          383189
+2229    41041           50862
+2230    41043          129839
+2231    41045           31693
+2232    41047          347119
+2233    41049           12303
+2234    41051          803377
+2235    41053           89164
+2236    41055            1907
+2237    41057           27748
+2238    41059           79988
+2239    41061           26212
+2240    41063            7545
+2241    41065           26726
+2242    41067          600811
+2243    41069            1451
+2244    41071          108239
+2245    42001          104127
+2246    42003         1238090
+2247    42005           65093
+2248    42007          166624
+2249    42009           47461
+2250    42011          429342
+2251    42013          121767
+2252    42015           59892
+2253    42017          646098
+2254    42019          194273
+2255    42021          132167
+2256    42023            4459
+2257    42025           65412
+2258    42027          157527
+2259    42029          538649
+2260    42031           37156
+2261    42033           80082
+2262    42035           37465
+2263    42037           64872
+2264    42039           83351
+2265    42041          262919
+2266    42043          287400
+2267    42045          573849
+2268    42047           30783
+2269    42049          269011
+2270    42051          126931
+2271    42053            7032
+2272    42055          156289
+2273    42057           14523
+2274    42059           35369
+2275    42061           43889
+2276    42063           82886
+2277    42065           44114
+2278    42067           23297
+2279    42069          215663
+2280    42071          553652
+2281    42073           85497
+2282    42075          143493
+2283    42077          375539
+2284    42079          326053
+2285    42081          113605
+2286    42083           39941
+2287    42085          109972
+2288    42087           46136
+2289    42089          169273
+2290    42091          860578
+2291    42093           18087
+2292    42095          313628
+2293    42097           91266
+2294    42099           45986
+2295    42101         1576251
+2296    42103           59952
+2297    42105           16259
+2298    42107          143264
+2299    42109           39621
+2300    42111           73627
+2301    42113            5868
+2302    42115           38389
+2303    42117           40929
+2304    42119           42568
+2305    42121           49938
+2306    42123           38134
+2307    42125          209470
+2308    42127           51431
+2309    42129          353057
+2310    42131           26034
+2311    42133          458696
+2312    44001           50818
+2313    44003          170715
+2314    44005           85264
+2315    44007          658221
+2316    44009          130592
+2317    45001           24299
+2318    45003          170776
+2319    45005            7858
+2320    45007          206908
+2321    45009           13189
+2322    45011           20580
+2323    45013          191748
+2324    45015          236701
+2325    45017           14165
+2326    45019          413024
+2327    45021           56052
+2328    45023           32209
+2329    45025           43268
+2330    45027           31024
+2331    45029           38462
+2332    45031           62755
+2333    45033           28087
+2334    45035          163327
+2335    45037           26153
+2336    45039           20690
+2337    45041          136504
+2338    45043           63921
+2339    45045          533834
+2340    45047           69241
+2341    45049           18180
+2342    45051          365579
+2343    45053           30324
+2344    45055           66130
+2345    45057          100336
+2346    45059           67803
+2347    45061           16280
+2348    45063          300137
+2349    45065            9760
+2350    45067           28784
+2351    45069           26382
+2352    45071           37996
+2353    45073           79203
+2354    45075           82962
+2355    45077          132229
+2356    45079          418307
+2357    45081           18821
+2358    45083          335864
+2359    45085          104758
+2360    45087           27016
+2361    45089           30484
+2362    45091          288595
+2363    46003            2748
+2364    46005           19121
+2365    46007            3406
+2366    46009            7014
+2367    46011           34639
+2368    46013           38101
+2369    46015            5242
+2370    46017            1923
+2371    46019           10456
+2372    46021            1380
+2373    46023            9163
+2374    46025            3855
+2375    46027           15150
+2376    46029           28427
+2377    46031            3872
+2378    46033            8609
+2379    46035           19878
+2380    46037            5414
+2381    46039            4272
+2382    46041            5246
+2383    46043            2821
+2384    46045            4033
+2385    46047            7202
+2386    46049            2137
+2387    46051            7519
+2388    46053            3977
+2389    46055            1835
+2390    46057            6255
+2391    46059            3095
+2392    46061            3505
+2393    46063            1327
+2394    46065           17694
+2395    46067            7411
+2396    46069            1236
+2397    46071            2878
+2398    46073            1636
+2399    46075             879
+2400    46077            5192
+2401    46079           10851
+2402    46081           26165
+2403    46083           67870
+2404    46085            3764
+2405    46087            5695
+2406    46089            2420
+2407    46091            4304
+2408    46093           30173
+2409    46095            1908
+2410    46097            2314
+2411    46099          199685
+2412    46101            6315
+2413    46102           13586
+2414    46103          111806
+2415    46105            2819
+2416    46107            2475
+2417    46109           10163
+2418    46111            2378
+2419    46115            6269
+2420    46117            3032
+2421    46119            1476
+2422    46121            9286
+2423    46123            5569
+2424    46125            8708
+2425    46127           16872
+2426    46129            5248
+2427    46135           23297
+2428    46137            2380
+2429    47001           77576
+2430    47003           51119
+2431    47005           15872
+2432    47007           15234
+2433    47009          137605
+2434    47011          110162
+2435    47013           39578
+2436    47015           14553
+2437    47017           28432
+2438    47019           56134
+2439    47021           41523
+2440    47023           17504
+2441    47025           32267
+2442    47027            7555
+2443    47029           36418
+2444    47031           59032
+2445    47033           13979
+2446    47035           62451
+2447    47037          703953
+2448    47039           11391
+2449    47041           20478
+2450    47043           55292
+2451    47045           36615
+2452    47047           42832
+2453    47049           18850
+2454    47051           43215
+2455    47053           50541
+2456    47055           30542
+2457    47057           23763
+2458    47059           70621
+2459    47061           13622
+2460    47063           64468
+2461    47065          369135
+2462    47067            6787
+2463    47069           25426
+2464    47071           26892
+2465    47073           57288
+2466    47075           17694
+2467    47077           27953
+2468    47079           32239
+2469    47081           25307
+2470    47083            8317
+2471    47085           19211
+2472    47087           11750
+2473    47089           55624
+2474    47091           18170
+2475    47093          486677
+2476    47095            7128
+2477    47097           25108
+2478    47099           44828
+2479    47101           12857
+2480    47103           35433
+2481    47105           56690
+2482    47107           54059
+2483    47109           25860
+2484    47111           25699
+2485    47113           98775
+2486    47115           28877
+2487    47117           34984
+2488    47119          104760
+2489    47121           13049
+2490    47123           46698
+2491    47125          227900
+2492    47127            6644
+2493    47129           21254
+2494    47131           30466
+2495    47133           22839
+2496    47135            8472
+2497    47137            5079
+2498    47139           17776
+2499    47141           81188
+2500    47143           33136
+2501    47145           53992
+2502    47147           74098
+2503    47149          352182
+2504    47151           21917
+2505    47153           16396
+2506    47155           99517
+2507    47157          924454
+2508    47159           20172
+2509    47161           13855
+2510    47163          159265
+2511    47165          200557
+2512    47167           61004
+2513    47169           12035
+2514    47171           17698
+2515    47173           20040
+2516    47175            6324
+2517    47177           41523
+2518    47179          134236
+2519    47181           16409
+2520    47183           33036
+2521    47185           27650
+2522    47187          255735
+2523    47189          151917
+2524    48001           58402
+2525    48003           18440
+2526    48005           86506
+2527    48007           24510
+2528    48009            8681
+2529    48011            1839
+2530    48013           49939
+2531    48015           30380
+2532    48017            6835
+2533    48019           21565
+2534    48021          102058
+2535    48023            3477
+2536    48025           30924
+2537    48027          379617
+2538    48029         2028236
+2539    48031           11886
+2540    48033             617
+2541    48035           18503
+2542    48037           92581
+2543    48039          379689
+2544    48041          237032
+2545    48043            9450
+2546    48045            1403
+2547    48047            6994
+2548    48049           38192
+2549    48051           18051
+2550    48053           50954
+2551    48055           46791
+2552    48057           19727
+2553    48059           14115
+2554    48061          423029
+2555    48063           12616
+2556    48065            5746
+2557    48067           28560
+2558    48069            7374
+2559    48071           48865
+2560    48073           51097
+2561    48075            6736
+2562    48077           10263
+2563    48079            2516
+2564    48081            3321
+2565    48083            7735
+2566    48085         1109462
+2567    48087            2615
+2568    48089           20630
+2569    48091          174986
+2570    48093           13775
+2571    48095            3341
+2572    48097           42244
+2573    48099           84232
+2574    48101            1381
+2575    48103            4680
+2576    48105            3068
+2577    48107            5106
+2578    48109            2193
+2579    48111            7172
+2580    48113         2586050
+2581    48115           12413
+2582    48117           18329
+2583    48119            5392
+2584    48121          941647
+2585    48123           19918
+2586    48125            1740
+2587    48127            8473
+2588    48129            3268
+2589    48131            9756
+2590    48133           17864
+2591    48135          161091
+2592    48137            1438
+2593    48139          202678
+2594    48141          867947
+2595    48143           43378
+2596    48145           17313
+2597    48147           36569
+2598    48149           24687
+2599    48151            3706
+2600    48153            5350
+2601    48155            1080
+2602    48157          858527
+2603    48159           10464
+2604    48161           19774
+2605    48163           18436
+2606    48165           21895
+2607    48167          355062
+2608    48169            5863
+2609    48171           27297
+2610    48173            1149
+2611    48175            7163
+2612    48177           19641
+2613    48179           21030
+2614    48181          139336
+2615    48183          124201
+2616    48185           30287
+2617    48187          177036
+2618    48189           32220
+2619    48191            2845
+2620    48193            8229
+2621    48195            5159
+2622    48197            3552
+2623    48199           56973
+2624    48201         4728030
+2625    48203           69150
+2626    48205            5397
+2627    48207            5411
+2628    48209          255397
+2629    48211            3271
+2630    48213           83667
+2631    48215          880356
+2632    48217           36471
+2633    48219           21363
+2634    48221           64222
+2635    48223           37211
+2636    48225           22241
+2637    48227           34128
+2638    48229            3287
+2639    48231          103394
+2640    48233           20495
+2641    48235            1552
+2642    48237            8712
+2643    48239           15121
+2644    48241           32975
+2645    48243            1949
+2646    48245          253704
+2647    48247            4801
+2648    48249           38847
+2649    48251          187280
+2650    48253           19873
+2651    48255           14754
+2652    48257          157768
+2653    48259           46788
+2654    48261             340
+2655    48263             749
+2656    48265           53161
+2657    48267            4365
+2658    48269             258
+2659    48271            3130
+2660    48273           30635
+2661    48275            3351
+2662    48277           50098
+2663    48279           12898
+2664    48281           22252
+2665    48283            6670
+2666    48285           20544
+2667    48287           17706
+2668    48289           15959
+2669    48291           97621
+2670    48293           22119
+2671    48295            2931
+2672    48297           11377
+2673    48299           21978
+2674    48301              57
+2675    48303          314451
+2676    48305            5688
+2677    48307            7533
+2678    48309          263115
+2679    48311             608
+2680    48313           13718
+2681    48315            9645
+2682    48317            5211
+2683    48319            3943
+2684    48321           36344
+2685    48323           58056
+2686    48325           51981
+2687    48327            1982
+2688    48329          167969
+2689    48331           25106
+2690    48333            4480
+2691    48335            9070
+2692    48337           20409
+2693    48339          648886
+2694    48341           21118
+2695    48343           12030
+2696    48345            1067
+2697    48347           64668
+2698    48349           53591
+2699    48351           12241
+2700    48353           14597
+2701    48355          353079
+2702    48357            9782
+2703    48359            1717
+2704    48361           84742
+2705    48363           28686
+2706    48365           22675
+2707    48367          156764
+2708    48369            9813
+2709    48371           15118
+2710    48373           51899
+2711    48375          116547
+2712    48377            6140
+2713    48379           12509
+2714    48381          143854
+2715    48383            3253
+2716    48385            2826
+2717    48387           11555
+2718    48389           14487
+2719    48391            6756
+2720    48393             797
+2721    48395           16958
+2722    48397          116381
+2723    48399            9943
+2724    48401           52743
+2725    48403           10039
+2726    48405            7922
+2727    48407           27878
+2728    48409           69699
+2729    48411            5827
+2730    48413            2429
+2731    48415           16824
+2732    48417            3212
+2733    48419           23939
+2734    48421            2798
+2735    48423          237186
+2736    48425            9469
+2737    48427           66049
+2738    48429            9173
+2739    48431            1381
+2740    48433            1217
+2741    48435            3319
+2742    48437            7008
+2743    48439         2126477
+2744    48441          143326
+2745    48443             724
+2746    48445           11754
+2747    48447            1495
+2748    48449           31183
+2749    48451          119411
+2750    48453         1305154
+2751    48455           13827
+2752    48457           20077
+2753    48459           41774
+2754    48461            3265
+2755    48463           24729
+2756    48465           47564
+2757    48467           61275
+2758    48469           90964
+2759    48471           77977
+2760    48473           59781
+2761    48475           11194
+2762    48477           35891
+2763    48479          267945
+2764    48481           41721
+2765    48483            4927
+2766    48485          130069
+2767    48487           12731
+2768    48489           20316
+2769    48491          643026
+2770    48493           51257
+2771    48495            7415
+2772    48497           71714
+2773    48499           45875
+2774    48501            7607
+2775    48503           17977
+2776    48505           13908
+2777    48507            9534
+2778    49001            7249
+2779    49003           59688
+2780    49005          137417
+2781    49007           20372
+2782    49009             976
+2783    49011          367285
+2784    49013           19790
+2785    49015            9967
+2786    49017            5129
+2787    49019            9663
+2788    49021           60519
+2789    49023           12155
+2790    49025            7992
+2791    49027           13164
+2792    49029           12657
+2793    49031            1487
+2794    49033            2597
+2795    49035         1186421
+2796    49037           14489
+2797    49039           29106
+2798    49041           21906
+2799    49043           43093
+2800    49045           76640
+2801    49047           36204
+2802    49049          684986
+2803    49051           36173
+2804    49053          191226
+2805    49055            2558
+2806    49057          267066
+2807    50001           37260
+2808    50003           37312
+2809    50005           30403
+2810    50007          168865
+2811    50009            5925
+2812    50011           50325
+2813    50013            7421
+2814    50015           26126
+2815    50017           29541
+2816    50019           27546
+2817    50021           60591
+2818    50023           59969
+2819    50025           46090
+2820    50027           58196
+2821    51001           33246
+2822    51003          113535
+2823    51005           14986
+2824    51007           13268
+2825    51009           31273
+2826    51011           16353
+2827    51013          232965
+2828    51015           77563
+2829    51017            4114
+2830    51019           80131
+2831    51021            6173
+2832    51023           33866
+2833    51025           15940
+2834    51027           19816
+2835    51029           16947
+2836    51031           55492
+2837    51033           31332
+2838    51035           29048
+2839    51036            6594
+2840    51037           11448
+2841    51041          370688
+2842    51043           14881
+2843    51045            4865
+2844    51047           53596
+2845    51049            9681
+2846    51051           13787
+2847    51053           27912
+2848    51057           10573
+2849    51059         1139720
+2850    51061           73815
+2851    51063           15566
+2852    51065           27723
+2853    51067           54938
+2854    51069           93717
+2855    51071           16562
+2856    51073           39069
+2857    51075           25488
+2858    51077           15359
+2859    51079           20968
+2860    51081           11437
+2861    51083           33738
+2862    51085          111603
+2863    51087          333554
+2864    51089           50248
+2865    51091            2226
+2866    51093           39278
+2867    51095           79882
+2868    51097            6662
+2869    51099           27489
+2870    51101           18171
+2871    51103           10928
+2872    51105           21983
+2873    51107          427592
+2874    51109           38848
+2875    51111           11926
+2876    51113           13942
+2877    51115            8546
+2878    51117           30248
+2879    51119           10781
+2880    51121           98473
+2881    51125           14790
+2882    51127           23897
+2883    51131           12085
+2884    51133           12029
+2885    51135           15594
+2886    51137           37188
+2887    51139           23807
+2888    51141           17602
+2889    51143           59972
+2890    51145           31136
+2891    51147           21932
+2892    51149           42880
+2893    51153          484472
+2894    51155           33759
+2895    51157            7407
+2896    51159            9017
+2897    51161           96589
+2898    51163           22641
+2899    51165           84394
+2900    51167           25550
+2901    51169           21419
+2902    51171           44752
+2903    51173           29477
+2904    51175           18006
+2905    51177          143676
+2906    51179          160877
+2907    51181            6530
+2908    51183           10763
+2909    51185           39925
+2910    51187           40925
+2911    51191           53635
+2912    51193           18731
+2913    51195           35647
+2914    51197           28178
+2915    51199           70915
+2916    51510          154706
+2917    51520           17054
+2918    51530            6601
+2919    51540           45672
+2920    51550          251269
+2921    51570           18273
+2922    51580            5717
+2923    51590           42215
+2924    51595            5667
+2925    51600           24276
+2926    51610           14493
+2927    51620            8217
+2928    51630           28367
+2929    51640            6660
+2930    51650          137746
+2931    51660           51430
+2932    51670           23140
+2933    51678            7456
+2934    51680           79009
+2935    51683           42708
+2936    51685           17002
+2937    51690           13517
+2938    51700          184587
+2939    51710          235089
+2940    51720            3666
+2941    51730           33429
+2942    51735           12574
+2943    51740           97840
+2944    51750           16499
+2945    51760          226604
+2946    51770           98865
+2947    51775           25373
+2948    51790           25661
+2949    51800           96194
+2950    51810          457672
+2951    51820           22550
+2952    51830           15590
+2953    51840           28136
+2954    53001           20621
+2955    53003           22397
+2956    53005          210025
+2957    53007           79646
+2958    53009           78209
+2959    53011          511404
+2960    53013            4042
+2961    53015          111524
+2962    53017           43696
+2963    53019            7273
+2964    53021           98268
+2965    53023            2346
+2966    53025          100297
+2967    53027           76841
+2968    53029           87432
+2969    53031           33605
+2970    53033         2252305
+2971    53035          274314
+2972    53037           45499
+2973    53039           23118
+2974    53041           84398
+2975    53043           11232
+2976    53045           67615
+2977    53047           42634
+2978    53049           23948
+2979    53051           13886
+2980    53053          925708
+2981    53055           18557
+2982    53057          130696
+2983    53059           12170
+2984    53061          833540
+2985    53063          546040
+2986    53065           47426
+2987    53067          297977
+2988    53069            4582
+2989    53071           62682
+2990    53073          228831
+2991    53075           47873
+2992    53077          256035
+2993    54001           15468
+2994    54003          126069
+2995    54005           21312
+2996    54007           12247
+2997    54009           22140
+2998    54011           93418
+2999    54013            6176
+3000    54015            7892
+3001    54017            7735
+3002    54019           39927
+3003    54021            7377
+3004    54023           10983
+3005    54025           32608
+3006    54027           23302
+3007    54029           28656
+3008    54031           14160
+3009    54033           65158
+3010    54035           27738
+3011    54037           58370
+3012    54039          177952
+3013    54041           16892
+3014    54043           20126
+3015    54045           31909
+3016    54047           18363
+3017    54049           56001
+3018    54051           30115
+3019    54053           25157
+3020    54055           59097
+3021    54057           26857
+3022    54059           23005
+3023    54061          106387
+3024    54063           12332
+3025    54065           17221
+3026    54067           24300
+3027    54069           41776
+3028    54071            6142
+3029    54073            7601
+3030    54075            7841
+3031    54077           34358
+3032    54079           57260
+3033    54081           73771
+3034    54083           27806
+3035    54085            8383
+3036    54087           13898
+3037    54089           11908
+3038    54091           16492
+3039    54093            6672
+3040    54095            8155
+3041    54097           23791
+3042    54099           38498
+3043    54101            8249
+3044    54103           14170
+3045    54105            5063
+3046    54107           83624
+3047    54109           21051
+3048    55001           20875
+3049    55003           16107
+3050    55005           46719
+3051    55007           16320
+3052    55009          269591
+3053    55011           13302
+3054    55013           16744
+3055    55015           52539
+3056    55017           66865
+3057    55019           34746
+3058    55021           58488
+3059    55023           16075
+3060    55025          563951
+3061    55027           89313
+3062    55029           30369
+3063    55031           44203
+3064    55033           45547
+3065    55035          106452
+3066    55037            4593
+3067    55039          104362
+3068    55041            9258
+3069    55043           52110
+3070    55045           36988
+3071    55047           19229
+3072    55049           23756
+3073    55051            6178
+3074    55053           21121
+3075    55055           84943
+3076    55057           26802
+3077    55059          168732
+3078    55061           20543
+3079    55063          120433
+3080    55065           16784
+3081    55067           19502
+3082    55069           28541
+3083    55071           81505
+3084    55073          137648
+3085    55075           41875
+3086    55077           15792
+3087    55078            4289
+3088    55079          928059
+3089    55081           46193
+3090    55083           39356
+3091    55085           38259
+3092    55087          191545
+3093    55089           92497
+3094    55091            7364
+3095    55093           42587
+3096    55095           45431
+3097    55097           70468
+3098    55099           14050
+3099    55101          196896
+3100    55103           17212
+3101    55105          164381
+3102    55107           14123
+3103    55109           95044
+3104    55111           65697
+3105    55113           18295
+3106    55115           40859
+3107    55117          117747
+3108    55119           19923
+3109    55121           30724
+3110    55123           30915
+3111    55125           23520
+3112    55127          106799
+3113    55129           16752
+3114    55131          137175
+3115    55133          408756
+3116    55135           51570
+3117    55137           24828
+3118    55139          171623
+3119    55141           74070
+3120    56001           37608
+3121    56003           11632
+3122    56005           46401
+3123    56007           14649
+3124    56009           13672
+3125    56011            7315
+3126    56013           39336
+3127    56015           12537
+3128    56017            4597
+3129    56019            8623
+3130    56021          100863
+3131    56023           20153
+3132    56025           79555
+3133    56027            2438
+3134    56029           30108
+3135    56031            8699
+3136    56033           31646
+3137    56035            8697
+3138    56037           41614
+3139    56039           23575
+3140    56041           20635
+3141    56043            7705
+3142    56045            6745
+```
+
+---
+
+# County Data!
+
+
+```r
+(us_counties = AOI::aoi_get(state = "conus", county = "all") |&gt; 
+  left_join(popdata, by = "fip_code"))
+```
+
+```
+Simple feature collection with 3108 features and 15 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: -124.8485 ymin: 24.39631 xmax: -66.88544 ymax: 49.38448
+Geodetic CRS:  WGS 84
+First 10 features:
+   state_region state_division feature_code state_name state_abbr     name
+1             3              6      0161526    Alabama         AL  Autauga
+2             3              6      0161527    Alabama         AL  Baldwin
+3             3              6      0161528    Alabama         AL  Barbour
+4             3              6      0161529    Alabama         AL     Bibb
+5             3              6      0161530    Alabama         AL   Blount
+6             3              6      0161531    Alabama         AL  Bullock
+7             3              6      0161532    Alabama         AL   Butler
+8             3              6      0161533    Alabama         AL  Calhoun
+9             3              6      0161534    Alabama         AL Chambers
+10            3              6      0161535    Alabama         AL Cherokee
+   fip_class tiger_class combined_area_code metropolitan_area_code
+1         H1       G4020                388                   &lt;NA&gt;
+2         H1       G4020                380                   &lt;NA&gt;
+3         H1       G4020                 NA                   &lt;NA&gt;
+4         H1       G4020                142                   &lt;NA&gt;
+5         H1       G4020                142                   &lt;NA&gt;
+6         H1       G4020                 NA                   &lt;NA&gt;
+7         H1       G4020                 NA                   &lt;NA&gt;
+8         H1       G4020                 NA                   &lt;NA&gt;
+9         H1       G4020                122                   &lt;NA&gt;
+10        H1       G4020                 NA                   &lt;NA&gt;
+   functional_status  land_area water_area fip_code POPESTIMATE2021
+1                  A 1539634184   25674812    01001           59095
+2                  A 4117656514 1132955729    01003          239294
+3                  A 2292160149   50523213    01005           24964
+4                  A 1612188717    9572303    01007           22477
+5                  A 1670259090   14860281    01009           59041
+6                  A 1613083467    6030667    01011           10320
+7                  A 2012002546    2701199    01013           18884
+8                  A 1569246126   16536293    01015          115972
+9                  A 1545085601   16971700    01017           34541
+10                 A 1433620850  120310807    01019           24996
+                         geometry
+1  MULTIPOLYGON (((-86.81491 3...
+2  MULTIPOLYGON (((-87.59883 3...
+3  MULTIPOLYGON (((-85.41644 3...
+4  MULTIPOLYGON (((-87.01916 3...
+5  MULTIPOLYGON (((-86.5778 33...
+6  MULTIPOLYGON (((-85.65767 3...
+7  MULTIPOLYGON (((-86.4482 31...
+8  MULTIPOLYGON (((-85.79605 3...
+9  MULTIPOLYGON (((-85.59315 3...
+10 MULTIPOLYGON (((-85.51361 3...
+```
+
+---
+ 
+# County Data!
+
+
+```r
+# Which counties intersect this system
+misscount = st_filter(us_counties, 
+                      miss,  
+                      .predicate = st_intersects) 
+
+# Find all counties in the intersecting states
+counties =  filter(us_counties, state_name %in% c(misscount$state_name) ) 
+```
+
+---
+
+count: false
+ 
+##Intersecting Counties
+.panel1-q11-auto[
+
+```r
+*ggplot()
+```
+]
+ 
+.panel2-q11-auto[
+&lt;img src="session3_files/figure-html/q11_auto_01_output-1.png" width="432" /&gt;
+]
+
+---
+count: false
+ 
+##Intersecting Counties
+.panel1-q11-auto[
+
+```r
+ggplot() +
+* geom_sf(data = counties, lty = 3)
+```
+]
+ 
+.panel2-q11-auto[
+&lt;img src="session3_files/figure-html/q11_auto_02_output-1.png" width="432" /&gt;
+]
+
+---
+count: false
+ 
+##Intersecting Counties
+.panel1-q11-auto[
+
+```r
+ggplot() +
+  geom_sf(data = counties, lty = 3) +
+* geom_sf(data = misscount, fill = 'red', alpha = .5)
+```
+]
+ 
+.panel2-q11-auto[
+&lt;img src="session3_files/figure-html/q11_auto_03_output-1.png" width="432" /&gt;
+]
+
+---
+count: false
+ 
+##Intersecting Counties
+.panel1-q11-auto[
+
+```r
+ggplot() +
+  geom_sf(data = counties, lty = 3) +
+  geom_sf(data = misscount, fill = 'red', alpha = .5) +
+* geom_sf(data = miss, col = "blue")
+```
+]
+ 
+.panel2-q11-auto[
+&lt;img src="session3_files/figure-html/q11_auto_04_output-1.png" width="432" /&gt;
+]
+
+---
+count: false
+ 
+##Intersecting Counties
+.panel1-q11-auto[
+
+```r
+ggplot() +
+  geom_sf(data = counties, lty = 3) +
+  geom_sf(data = misscount, fill = 'red', alpha = .5) +
+  geom_sf(data = miss, col = "blue") +
+* theme_linedraw()
+```
+]
+ 
+.panel2-q11-auto[
+&lt;img src="session3_files/figure-html/q11_auto_05_output-1.png" width="432" /&gt;
+]
+
+&lt;style&gt;
+.panel1-q11-auto {
+  color: black;
+  width: 38.8%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel2-q11-auto {
+  color: black;
+  width: 58.2%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel3-q11-auto {
+  color: black;
+  width: 0%;
+  hight: 33%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+&lt;/style&gt;
+
+
+
+
+
+---
+
+count: false
+ 
+##Intersecting Populations
+.panel1-q12-auto[
+
+```r
+*filter(misscount)
+```
+]
+ 
+.panel2-q12-auto[
+
+```
+Simple feature collection with 112 features and 15 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: -95.60286 ymin: 28.85513 xmax: -88.81289 ymax: 48.54021
+Geodetic CRS:  WGS 84
+First 10 features:
+   state_region state_division feature_code state_name state_abbr        name
+1             3              7      0069160   Arkansas         AR      Chicot
+2             3              7      0069162   Arkansas         AR  Crittenden
+3             3              7      0066850   Arkansas         AR       Desha
+4             3              7      0066866   Arkansas         AR         Lee
+5             3              7      0069899   Arkansas         AR Mississippi
+6             3              7      0069172   Arkansas         AR    Phillips
+7             2              3      0424202   Illinois         IL       Adams
+8             2              3      0424203   Illinois         IL   Alexander
+9             2              3      0424208   Illinois         IL     Calhoun
+10            2              3      0424209   Illinois         IL     Carroll
+   fip_class tiger_class combined_area_code metropolitan_area_code
+1         H1       G4020                 NA                   &lt;NA&gt;
+2         H1       G4020                368                   &lt;NA&gt;
+3         H1       G4020                 NA                   &lt;NA&gt;
+4         H1       G4020                 NA                   &lt;NA&gt;
+5         H1       G4020                 NA                   &lt;NA&gt;
+6         H1       G4020                 NA                   &lt;NA&gt;
+7         H1       G4020                448                   &lt;NA&gt;
+8         H1       G4020                164                   &lt;NA&gt;
+9         H1       G4020                476                   &lt;NA&gt;
+10        H1       G4020                 NA                   &lt;NA&gt;
+   functional_status  land_area water_area fip_code POPESTIMATE2021
+1                  A 1649764677  140413175    05017           10019
+2                  A 1587312625   81689126    05035           47525
+3                  A 1919735554  185180909    05041           11090
+4                  A 1553493435   57858191    05077            8619
+5                  A 2336409933   72224609    05093           39661
+6                  A 1788024160   95966884    05107           15906
+7                  A 2214826185   41754318    17001           64954
+8                  A  609667767   44639203    17003            5030
+9                  A  657415184   77051402    17013            4369
+10                 A 1153597401   55881822    17015           15698
+                         geometry
+1  MULTIPOLYGON (((-91.16615 3...
+2  MULTIPOLYGON (((-90.30836 3...
+3  MULTIPOLYGON (((-91.55766 3...
+4  MULTIPOLYGON (((-90.40854 3...
+5  MULTIPOLYGON (((-89.9097 35...
+6  MULTIPOLYGON (((-90.58737 3...
+7  MULTIPOLYGON (((-90.91197 4...
+8  MULTIPOLYGON (((-89.17208 3...
+9  MULTIPOLYGON (((-90.60357 3...
+10 MULTIPOLYGON (((-90.15198 4...
+```
+]
+
+---
+count: false
+ 
+##Intersecting Populations
+.panel1-q12-auto[
+
+```r
+filter(misscount) |&gt;
+* st_drop_geometry()
+```
+]
+ 
+.panel2-q12-auto[
+
+```
+    state_region state_division feature_code  state_name state_abbr
+1              3              7      0069160    Arkansas         AR
+2              3              7      0069162    Arkansas         AR
+3              3              7      0066850    Arkansas         AR
+4              3              7      0066866    Arkansas         AR
+5              3              7      0069899    Arkansas         AR
+6              3              7      0069172    Arkansas         AR
+7              2              3      0424202    Illinois         IL
+8              2              3      0424203    Illinois         IL
+9              2              3      0424208    Illinois         IL
+10             2              3      0424209    Illinois         IL
+11             2              3      0424235    Illinois         IL
+12             2              3      0424237    Illinois         IL
+13             2              3      0424240    Illinois         IL
+14             2              3      0424244    Illinois         IL
+15             2              3      0424258    Illinois         IL
+16             2              3      1784750    Illinois         IL
+17             2              3      1784865    Illinois         IL
+18             2              3      1784941    Illinois         IL
+19             2              3      1784967    Illinois         IL
+20             2              3      0424282    Illinois         IL
+21             2              3      1785113    Illinois         IL
+22             2              4      0465192        Iowa         IA
+23             2              4      0465210        Iowa         IA
+24             2              4      0465211        Iowa         IA
+25             2              4      0465217        Iowa         IA
+26             2              4      0465219        Iowa         IA
+27             2              4      0465237        Iowa         IA
+28             2              4      0465244        Iowa         IA
+29             2              4      0465246        Iowa         IA
+30             2              4      0465258        Iowa         IA
+31             2              4      0465270        Iowa         IA
+32             3              6      0516866    Kentucky         KY
+33             3              6      0516884    Kentucky         KY
+34             3              6      0516899    Kentucky         KY
+35             3              7      0558403   Louisiana         LA
+36             3              7      0558515   Louisiana         LA
+37             3              7      0558530   Louisiana         LA
+38             3              7      0558534   Louisiana         LA
+39             3              7      0558542   Louisiana         LA
+40             3              7      0558582   Louisiana         LA
+41             3              7      0558027   Louisiana         LA
+42             3              7      0558088   Louisiana         LA
+43             3              7      0558113   Louisiana         LA
+44             3              7      0558125   Louisiana         LA
+45             3              7      0559449   Louisiana         LA
+46             3              7      1629449   Louisiana         LA
+47             3              7      1629464   Louisiana         LA
+48             3              7      1629472   Louisiana         LA
+49             3              7      0559509   Louisiana         LA
+50             3              7      0559570   Louisiana         LA
+51             3              7      0559584   Louisiana         LA
+52             2              4      0663198   Minnesota         MN
+53             2              4      0659447   Minnesota         MN
+54             2              4      0659449   Minnesota         MN
+55             2              4      0659450   Minnesota         MN
+56             2              4      0659456   Minnesota         MN
+57             2              4      0659463   Minnesota         MN
+58             2              4      0659464   Minnesota         MN
+59             2              4      0659470   Minnesota         MN
+60             2              4      0659472   Minnesota         MN
+61             2              4      0659473   Minnesota         MN
+62             2              4      0659474   Minnesota         MN
+63             2              4      0659476   Minnesota         MN
+64             2              4      0659494   Minnesota         MN
+65             2              4      0659507   Minnesota         MN
+66             2              4      0659515   Minnesota         MN
+67             2              4      0659517   Minnesota         MN
+68             2              4      0659523   Minnesota         MN
+69             2              4      0659526   Minnesota         MN
+70             2              4      0659529   Minnesota         MN
+71             2              4      0659530   Minnesota         MN
+72             3              6      0695726 Mississippi         MS
+73             3              6      0695730 Mississippi         MS
+74             3              6      0695735 Mississippi         MS
+75             3              6      0695738 Mississippi         MS
+76             3              6      0695741 Mississippi         MS
+77             3              6      0695751 Mississippi         MS
+78             3              6      0695755 Mississippi         MS
+79             3              6      0695792 Mississippi         MS
+80             3              6      0695795 Mississippi         MS
+81             3              6      0695796 Mississippi         MS
+82             3              6      0695799 Mississippi         MS
+83             2              4      0758470    Missouri         MO
+84             2              4      0758477    Missouri         MO
+85             2              4      0758504    Missouri         MO
+86             2              4      0758510    Missouri         MO
+87             2              4      0758511    Missouri         MO
+88             2              4      0758517    Missouri         MO
+89             2              4      0758521    Missouri         MO
+90             2              4      0758526    Missouri         MO
+91             2              4      0758532    Missouri         MO
+92             2              4      0758533    Missouri         MO
+93             2              4      0758536    Missouri         MO
+94             2              4      0758541    Missouri         MO
+95             2              4      0758546    Missouri         MO
+96             2              4      0765806    Missouri         MO
+97             2              4      0758549    Missouri         MO
+98             2              4      0758553    Missouri         MO
+99             2              4      0767557    Missouri         MO
+100            3              6      1639741   Tennessee         TN
+101            3              6      1639762   Tennessee         TN
+102            3              6      1639763   Tennessee         TN
+103            3              6      1639790   Tennessee         TN
+104            3              6      1639795   Tennessee         TN
+105            2              3      1581065   Wisconsin         WI
+106            2              3      1581071   Wisconsin         WI
+107            2              3      1581081   Wisconsin         WI
+108            2              3      1581091   Wisconsin         WI
+109            2              3      1581106   Wisconsin         WI
+110            2              3      1581107   Wisconsin         WI
+111            2              3      1581120   Wisconsin         WI
+112            2              3      1581121   Wisconsin         WI
+                    name fip_class tiger_class combined_area_code
+1                 Chicot        H1       G4020                 NA
+2             Crittenden        H1       G4020                368
+3                  Desha        H1       G4020                 NA
+4                    Lee        H1       G4020                 NA
+5            Mississippi        H1       G4020                 NA
+6               Phillips        H1       G4020                 NA
+7                  Adams        H1       G4020                448
+8              Alexander        H1       G4020                164
+9                Calhoun        H1       G4020                476
+10               Carroll        H1       G4020                 NA
+11               Hancock        H1       G4020                161
+12             Henderson        H1       G4020                161
+13               Jackson        H1       G4020                 NA
+14            Jo Daviess        H1       G4020                 NA
+15               Madison        H1       G4020                476
+16                Mercer        H1       G4020                209
+17                Monroe        H1       G4020                476
+18                  Pike        H1       G4020                 NA
+19              Randolph        H1       G4020                 NA
+20           Rock Island        H1       G4020                209
+21                 Union        H1       G4020                 NA
+22             Allamakee        H1       G4020                 NA
+23               Clayton        H1       G4020                 NA
+24               Clinton        H1       G4020                209
+25            Des Moines        H1       G4020                161
+26               Dubuque        H1       G4020                 NA
+27               Jackson        H1       G4020                 NA
+28                   Lee        H1       G4020                161
+29                Louisa        H1       G4020                 NA
+30             Muscatine        H1       G4020                209
+31                 Scott        H1       G4020                209
+32              Carlisle        H1       G4020                 NA
+33                Fulton        H1       G4020                 NA
+34               Hickman        H1       G4020                 NA
+35             Ascension        H1       G4020                 NA
+36             Concordia        H1       G4020                 NA
+37      East Baton Rouge        H6       G4020                 NA
+38          East Carroll        H1       G4020                 NA
+39        East Feliciana        H1       G4020                 NA
+40             Iberville        H1       G4020                 NA
+41             Jefferson        H1       G4020                406
+42               Madison        H1       G4020                 NA
+43               Orleans        H6       G4020                406
+44           Plaquemines        H1       G4020                406
+45         Pointe Coupee        H1       G4020                 NA
+46           St. Charles        H1       G4020                406
+47             St. James        H1       G4020                406
+48  St. John the Baptist        H1       G4020                406
+49                Tensas        H1       G4020                 NA
+50      West Baton Rouge        H1       G4020                 NA
+51        West Feliciana        H1       G4020                 NA
+52                Aitkin        H1       G4020                 NA
+53                 Anoka        H1       G4020                378
+54              Beltrami        H1       G4020                 NA
+55                Benton        H1       G4020                378
+56                  Cass        H1       G4020                 NA
+57             Crow Wing        H1       G4020                 NA
+58                Dakota        H1       G4020                378
+59               Goodhue        H1       G4020                378
+60              Hennepin        H1       G4020                378
+61               Houston        H1       G4020                 NA
+62               Hubbard        H1       G4020                 NA
+63                Itasca        H1       G4020                 NA
+64              Morrison        H1       G4020                 NA
+65                Ramsey        H1       G4020                378
+66             Sherburne        H1       G4020                378
+67               Stearns        H1       G4020                378
+68               Wabasha        H1       G4020                462
+69            Washington        H1       G4020                378
+70                Winona        H1       G4020                 NA
+71                Wright        H1       G4020                378
+72                 Adams        H1       G4020                 NA
+73               Bolivar        H1       G4020                185
+74             Claiborne        H1       G4020                 NA
+75               Coahoma        H1       G4020                 NA
+76                DeSoto        H1       G4020                368
+77             Issaquena        H1       G4020                 NA
+78             Jefferson        H1       G4020                 NA
+79                Tunica        H1       G4020                368
+80                Warren        H1       G4020                298
+81            Washington        H1       G4020                 NA
+82             Wilkinson        H1       G4020                 NA
+83        Cape Girardeau        H1       G4020                164
+84                 Clark        H1       G4020                161
+85             Jefferson        H1       G4020                476
+86                 Lewis        H1       G4020                448
+87               Lincoln        H1       G4020                476
+88                Marion        H1       G4020                448
+89           Mississippi        H1       G4020                 NA
+90            New Madrid        H1       G4020                 NA
+91              Pemiscot        H1       G4020                 NA
+92                 Perry        H1       G4020                 NA
+93                  Pike        H1       G4020                 NA
+94                 Ralls        H1       G4020                448
+95           St. Charles        H1       G4020                476
+96        Ste. Genevieve        H1       G4020                 NA
+97             St. Louis        H1       G4020                476
+98                 Scott        H1       G4020                164
+99             St. Louis        C7       G4020                476
+100                 Dyer        H1       G4020                 NA
+101                 Lake        H1       G4020                 NA
+102           Lauderdale        H1       G4020                 NA
+103               Shelby        H1       G4020                368
+104               Tipton        H1       G4020                368
+105              Buffalo        H1       G4020                 NA
+106             Crawford        H1       G4020                 NA
+107                Grant        H1       G4020                 NA
+108            La Crosse        H1       G4020                 NA
+109                Pepin        H1       G4020                 NA
+110               Pierce        H1       G4020                378
+111          Trempealeau        H1       G4020                 NA
+112               Vernon        H1       G4020                 NA
+    metropolitan_area_code functional_status  land_area water_area fip_code
+1                     &lt;NA&gt;                 A 1649764677  140413175    05017
+2                     &lt;NA&gt;                 A 1587312625   81689126    05035
+3                     &lt;NA&gt;                 A 1919735554  185180909    05041
+4                     &lt;NA&gt;                 A 1553493435   57858191    05077
+5                     &lt;NA&gt;                 A 2336409933   72224609    05093
+6                     &lt;NA&gt;                 A 1788024160   95966884    05107
+7                     &lt;NA&gt;                 A 2214826185   41754318    17001
+8                     &lt;NA&gt;                 A  609667767   44639203    17003
+9                     &lt;NA&gt;                 A  657415184   77051402    17013
+10                    &lt;NA&gt;                 A 1153597401   55881822    17015
+11                    &lt;NA&gt;                 A 2055798695   53563360    17067
+12                    &lt;NA&gt;                 A  981068796   42565932    17071
+13                    &lt;NA&gt;                 A 1511439594   48312243    17077
+14                    &lt;NA&gt;                 A 1556385347   45789931    17085
+15                    &lt;NA&gt;                 A 1853175882   63522153    17119
+16                    &lt;NA&gt;                 A 1453604391   19411909    17131
+17                    &lt;NA&gt;                 A  997924046   33755286    17133
+18                    &lt;NA&gt;                 A 2153190724   45251530    17149
+19                    &lt;NA&gt;                 A 1490194098   56150220    17157
+20                    &lt;NA&gt;                 A 1107209785   61633874    17161
+21                    &lt;NA&gt;                 A 1070731267   22540420    17181
+22                    &lt;NA&gt;                 A 1655115641   51094064    19005
+23                    &lt;NA&gt;                 A 2016295985   36695624    19043
+24                    &lt;NA&gt;                 A 1799934695   39410955    19045
+25                    &lt;NA&gt;                 A 1077769233   35341938    19057
+26                    &lt;NA&gt;                 A 1575487976   21138781    19061
+27                    &lt;NA&gt;                 A 1647344929   35129054    19097
+28                    &lt;NA&gt;                 A 1340448559   55266767    19111
+29                    &lt;NA&gt;                 A 1040596801   40784321    19115
+30                    &lt;NA&gt;                 A 1132964480   30262337    19139
+31                    &lt;NA&gt;                 A 1186463531   26196368    19163
+32                    &lt;NA&gt;                 A  490647294   24707972    21039
+33                    &lt;NA&gt;                 A  533351953   64091345    21075
+34                    &lt;NA&gt;                 A  627487969   27882023    21105
+35                    &lt;NA&gt;                 A  751016878   32969822    22005
+36                    &lt;NA&gt;                 A 1805360346  130322878    22029
+37                    &lt;NA&gt;                 B 1179744891   38443657    22033
+38                    &lt;NA&gt;                 A 1090092484   56411688    22035
+39                    &lt;NA&gt;                 A 1174022934    6150603    22037
+40                    &lt;NA&gt;                 A 1602476038   88659446    22047
+41                    &lt;NA&gt;                 A  779455288  883412483    22051
+42                    &lt;NA&gt;                 A 1616604801   68460376    22065
+43                    &lt;NA&gt;                 C  439001414  467095943    22071
+44                    &lt;NA&gt;                 A 2020676390 4628435537    22075
+45                    &lt;NA&gt;                 A 1442300231   86716680    22077
+46                    &lt;NA&gt;                 A  719347893  308635080    22089
+47                    &lt;NA&gt;                 A  616057915   38773983    22093
+48                    &lt;NA&gt;                 A  555484721  506440074    22095
+49                    &lt;NA&gt;                 A 1561795836   99432220    22107
+50                    &lt;NA&gt;                 A  498174685   29604699    22121
+51                    &lt;NA&gt;                 A 1044584261   58751920    22125
+52                    &lt;NA&gt;                 A 4717323601  449370012    27001
+53                    &lt;NA&gt;                 A 1092881706   62440664    27003
+54                    &lt;NA&gt;                 A 6487154459 1426287777    27007
+55                    &lt;NA&gt;                 A 1057483361   12286984    27009
+56                    &lt;NA&gt;                 A 5235592066 1016598358    27021
+57                    &lt;NA&gt;                 A 2585732031  409718952    27035
+58                    &lt;NA&gt;                 A 1456981753   62989474    27037
+59                    &lt;NA&gt;                 A 1959853268   59175413    27049
+60                    &lt;NA&gt;                 A 1434949247  136626454    27053
+61                    &lt;NA&gt;                 A 1429966790   43313922    27055
+62                    &lt;NA&gt;                 A 2398345766  190324762    27057
+63                    &lt;NA&gt;                 A 6909414890  673890473    27061
+64                    &lt;NA&gt;                 A 2913980726   73275528    27097
+65                    &lt;NA&gt;                 A  394323902   46008725    27123
+66                    &lt;NA&gt;                 A 1121230367   46911208    27141
+67                    &lt;NA&gt;                 A 3477910045  122236877    27145
+68                    &lt;NA&gt;                 A 1354362715   68875473    27157
+69                    &lt;NA&gt;                 A  996415260   99954115    27163
+70                    &lt;NA&gt;                 A 1621791138   40051870    27169
+71                    &lt;NA&gt;                 A 1712394405  137711642    27171
+72                    &lt;NA&gt;                 A 1197464268   65273639    28001
+73                    &lt;NA&gt;                 A 2270141682   81446732    28011
+74                    &lt;NA&gt;                 A 1262400025   35711134    28021
+75                    &lt;NA&gt;                 A 1432526489   77525442    28027
+76                    &lt;NA&gt;                 A 1233730200   50234809    28033
+77                    &lt;NA&gt;                 A 1069614257   73664788    28055
+78                    &lt;NA&gt;                 A 1346620554   18988092    28063
+79                    &lt;NA&gt;                 A 1176191638   57012297    28143
+80                    &lt;NA&gt;                 A 1524286572   77759819    28149
+81                    &lt;NA&gt;                 A 1875077589   94257003    28151
+82                    &lt;NA&gt;                 A 1756287539   25018736    28157
+83                    &lt;NA&gt;                 A 1498351219   20284964    29031
+84                    &lt;NA&gt;                 A 1306924727   18695976    29045
+85                    &lt;NA&gt;                 A 1700186581   20302343    29099
+86                    &lt;NA&gt;                 A 1307988621   14965606    29111
+87                    &lt;NA&gt;                 A 1622789067   36002285    29113
+88                    &lt;NA&gt;                 A 1131623305   19113754    29127
+89                    &lt;NA&gt;                 A 1066029407   44515175    29133
+90                    &lt;NA&gt;                 A 1747940899   56236293    29143
+91                    &lt;NA&gt;                 A 1275841039   53915406    29155
+92                    &lt;NA&gt;                 A 1228574128   25394864    29157
+93                    &lt;NA&gt;                 A 1736428525   36976721    29163
+94                    &lt;NA&gt;                 A 1216743025   36381069    29173
+95                    &lt;NA&gt;                 A 1451692082   82663655    29183
+96                    &lt;NA&gt;                 A 1292800352   19739769    29186
+97                    &lt;NA&gt;                 A 1315390296   39612404    29189
+98                    &lt;NA&gt;                 A 1087808789   15175233    29201
+99                    &lt;NA&gt;                 F  159896485   11563208    29510
+100                   &lt;NA&gt;                 A 1326982067   35839863    47045
+101                   &lt;NA&gt;                 A  429381241   72799687    47095
+102                   &lt;NA&gt;                 A 1222203226   80251266    47097
+103                   &lt;NA&gt;                 A 1969826791   51308328    47157
+104                   &lt;NA&gt;                 A 1180026940   32703276    47167
+105                   &lt;NA&gt;                 A 1750290818   87549529    55011
+106                   &lt;NA&gt;                 A 1477970925   73976386    55023
+107                   &lt;NA&gt;                 A 2970402286   94521527    55043
+108                   &lt;NA&gt;                 A 1170175008   73150469    55063
+109                   &lt;NA&gt;                 A  600894491   43241432    55091
+110                   &lt;NA&gt;                 A 1486700521   48452323    55093
+111                   &lt;NA&gt;                 A 1898383310   23321910    55121
+112                   &lt;NA&gt;                 A 2050136139   64289089    55123
+    POPESTIMATE2021
+1             10019
+2             47525
+3             11090
+4              8619
+5             39661
+6             15906
+7             64954
+8              5030
+9              4369
+10            15698
+11            17400
+12             6312
+13            52565
+14            21939
+15           264490
+16            15582
+17            34932
+18            14618
+19            30142
+20           142909
+21            16923
+22            13926
+23            16998
+24            46463
+25            38491
+26            98718
+27            19368
+28            33215
+29            10749
+30            42688
+31           174170
+32             4791
+33             6512
+34             4424
+35           128369
+36            18376
+37           453301
+38             7220
+39            19338
+40            29824
+41           433688
+42             9799
+43           376971
+44            23303
+45            20356
+46            52282
+47            19742
+48            42094
+49             4043
+50            27792
+51            15494
+52            15887
+53           367018
+54            46380
+55            41459
+56            30639
+57            67270
+58           442038
+59            47968
+60          1267416
+61            18778
+62            21715
+63            45070
+64            33992
+65           543257
+66            99074
+67           158947
+68            21509
+69           272256
+70            49630
+71           144845
+72            28742
+73            30308
+74             8908
+75            20810
+76           188633
+77             1280
+78             7205
+79             9696
+80            43579
+81            43687
+82             8315
+83            82113
+84             6736
+85           227771
+86            10000
+87            61586
+88            28518
+89            12538
+90            16035
+91            15236
+92            18922
+93            17761
+94            10361
+95           409981
+96            18588
+97           997187
+98            37840
+99           293310
+100           36615
+101            7128
+102           25108
+103          924454
+104           61004
+105           13302
+106           16075
+107           52110
+108          120433
+109            7364
+110           42587
+111           30724
+112           30915
+```
+]
+
+---
+count: false
+ 
+##Intersecting Populations
+.panel1-q12-auto[
+
+```r
+filter(misscount) |&gt;
+  st_drop_geometry() |&gt;
+* group_by(state_name)
+```
+]
+ 
+.panel2-q12-auto[
+
+```
+# A tibble: 112 × 15
+# Groups:   state_name [10]
+   state_region state_division feature_code state_name state_abbr name       
+          &lt;int&gt;          &lt;int&gt; &lt;chr&gt;        &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;      
+ 1            3              7 0069160      Arkansas   AR         Chicot     
+ 2            3              7 0069162      Arkansas   AR         Crittenden 
+ 3            3              7 0066850      Arkansas   AR         Desha      
+ 4            3              7 0066866      Arkansas   AR         Lee        
+ 5            3              7 0069899      Arkansas   AR         Mississippi
+ 6            3              7 0069172      Arkansas   AR         Phillips   
+ 7            2              3 0424202      Illinois   IL         Adams      
+ 8            2              3 0424203      Illinois   IL         Alexander  
+ 9            2              3 0424208      Illinois   IL         Calhoun    
+10            2              3 0424209      Illinois   IL         Carroll    
+# … with 102 more rows, and 9 more variables: fip_class &lt;fct&gt;,
+#   tiger_class &lt;fct&gt;, combined_area_code &lt;int&gt;, metropolitan_area_code &lt;chr&gt;,
+#   functional_status &lt;fct&gt;, land_area &lt;dbl&gt;, water_area &lt;dbl&gt;, fip_code &lt;chr&gt;,
+#   POPESTIMATE2021 &lt;int&gt;
+```
+]
+
+---
+count: false
+ 
+##Intersecting Populations
+.panel1-q12-auto[
+
+```r
+filter(misscount) |&gt;
+  st_drop_geometry() |&gt;
+  group_by(state_name) |&gt;
+* summarize(pop = sum(POPESTIMATE2021))
+```
+]
+ 
+.panel2-q12-auto[
+
+```
+# A tibble: 10 × 2
+   state_name      pop
+   &lt;chr&gt;         &lt;int&gt;
+ 1 Arkansas     132820
+ 2 Illinois     707863
+ 3 Iowa         494786
+ 4 Kentucky      15727
+ 5 Louisiana   1681992
+ 6 Minnesota   3735148
+ 7 Mississippi  391163
+ 8 Missouri    2264483
+ 9 Tennessee   1054309
+10 Wisconsin    313510
+```
+]
+
+---
+count: false
+ 
+##Intersecting Populations
+.panel1-q12-auto[
+
+```r
+filter(misscount) |&gt;
+  st_drop_geometry() |&gt;
+  group_by(state_name) |&gt;
+  summarize(pop = sum(POPESTIMATE2021)) |&gt;
+* arrange(-pop)
+```
+]
+ 
+.panel2-q12-auto[
+
+```
+# A tibble: 10 × 2
+   state_name      pop
+   &lt;chr&gt;         &lt;int&gt;
+ 1 Minnesota   3735148
+ 2 Missouri    2264483
+ 3 Louisiana   1681992
+ 4 Tennessee   1054309
+ 5 Illinois     707863
+ 6 Iowa         494786
+ 7 Mississippi  391163
+ 8 Wisconsin    313510
+ 9 Arkansas     132820
+10 Kentucky      15727
+```
+]
+
+&lt;style&gt;
+.panel1-q12-auto {
+  color: black;
+  width: 38.8%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel2-q12-auto {
+  color: black;
+  width: 58.2%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel3-q12-auto {
+  color: black;
+  width: 0%;
+  hight: 33%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+&lt;/style&gt;
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:10",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

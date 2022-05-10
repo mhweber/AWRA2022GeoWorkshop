@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Concepts: Data Manipulation</title>
+    <meta charset="utf-8" />
+    <script src="libs/header-attrs-2.14/header-attrs.js"></script>
+    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
+    <link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+    <link rel="stylesheet" href="awra.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Concepts: Data Manipulation
+]
+
+---
+
+
+
+&lt;style type="text/css"&gt;
+.remark-code{font-size: 100%}
+&lt;/style&gt;
+
+
+
+##  Data Manipulation
+
+- The manipulation of `data.frames` almost always comes back to SQL queries
+
+--
+
+- R and Python abstract the SQL logic and provide function-ized methods for executing these core tasks.
+
+--
+
+- `dplyr` is the primary "tidyverse" package for doing this in R, while `pandas` is the "go to" in python.
+
+--
+
+- `dplyr` describes is functionality as a 'grammar of data manipulation' which is useful for discussion in that the functions we call, are things we "do" to the `data.frame`
+
+---
+
+
+## Verbs
+
+We will cover two "pure" verbs:
+
+- `select()`: picks variables based on their names.
+- `filter()`: picks rows/observations based on their values.
+
+And three "manipulation" verbs
+- `mutate()`: adds new variables that are functions of existing variables
+- `summarise()`: reduces multiple values down to a single summary.
+- `arrange()`: changes the ordering of the rows.
+
+
+These all combine naturally with `group_by()` which allows you to perform any operation "by group".
+
+---
+
+## The %&gt;% (pipe) operator
+ 
+The pipe operator (`%&gt;%`) will change your data workflow in R.
+
+This syntax leads to code that is much easier to write and to read.
+
+The RStudio keyboard shortcut: Ctrl+Shift+M (Windows), Cmd+Shift+M (Mac).
+
+The pipe passes the object on the left hand side of the pipe into the first argument of the right hand function
+
+To be %&gt;% compatible, the `data.frame` is ALWAYS the fist argument to dplyr verbs
+
+---
+
+# Data
+
+For demonstration we will get some streamflow data from the USGS. The details of this function will come latter in the course so focus on the data
+
+
+```r
+flows = readNWISdv(siteNumbers = '14187200',
+                   parameterCd = "00060") %&gt;% 
+  renameNWISColumns() 
+
+
+glimpse(flows)
+```
+
+```
+Rows: 17,785
+Columns: 5
+$ agency_cd &lt;chr&gt; "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USG…
+$ site_no   &lt;chr&gt; "14187200", "14187200", "14187200", "14187200", "14187200", …
+$ Date      &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05,…
+$ Flow      &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, …
+$ Flow_cd   &lt;chr&gt; "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", …
+```
+
+---
+
+## Use `filter()` to subset on a condition
+
+- `filter()` takes logical (binary) expressions and returns the _rows_ in which all conditions are TRUE.
+
+- `filter()` does NOT impact columns
+
+
+--
+
+- Lets find all rows in `flows` data that in have Flow code A:
+
+
+```r
+filter(flows, Flow_cd == "A") %&gt;% 
+  glimpse()
+```
+
+```
+Rows: 17,464
+Columns: 5
+$ agency_cd &lt;chr&gt; "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USG…
+$ site_no   &lt;chr&gt; "14187200", "14187200", "14187200", "14187200", "14187200", …
+$ Date      &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05,…
+$ Flow      &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, …
+$ Flow_cd   &lt;chr&gt; "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", …
+```
+
+---
+
+## Use `filter()` to subset data on multiple conditions
+
+- Lets find all observations in `flows` where the Date is after `2000-01-01`, _and_ the Flow Code is A:
+
+--
+
+
+```r
+filter(flows, Flow_cd == "A", Date &gt; as.Date("2010-01-01")) %&gt;% 
+  glimpse()
+```
+
+```
+Rows: 4,179
+Columns: 5
+$ agency_cd &lt;chr&gt; "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USG…
+$ site_no   &lt;chr&gt; "14187200", "14187200", "14187200", "14187200", "14187200", …
+$ Date      &lt;date&gt; 2010-01-02, 2010-01-03, 2010-01-04, 2010-01-05, 2010-01-06,…
+$ Flow      &lt;dbl&gt; 7870, 6920, 5860, 7860, 10000, 10100, 9760, 9130, 8600, 7040…
+$ Flow_cd   &lt;chr&gt; "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", …
+```
+
+---
+
+## Use `select()` to subset by variables or columns.
+
+- Use `select()` to subset the variables or columns you want by name (think of the `$` syntax).
+
+--
+
+
+```r
+select(flows, Date, Flow) %&gt;%
+  glimpse()
+```
+
+```
+Rows: 17,785
+Columns: 2
+$ Date &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05, 1973…
+$ Flow &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, 945, …
+```
+
+---
+
+## Use `select()` to subset and rename
+
+`select()` can also be used to rename existing columns
+
+
+```r
+select(flows, Date, flow_cfs = Flow) %&gt;%
+  glimpse()
+```
+
+```
+Rows: 17,785
+Columns: 2
+$ Date     &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05, …
+$ flow_cfs &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, 9…
+```
+
+---
+
+# Use mutate() to add new variables
+
+--
+
+- `mutate()` defines and inserts new variables into a existing `data.frame`
+
+--
+
+- `mutate()` builds new variables sequentially so you can reference earlier ones when defining later ones 
+
+--
+
+- In the `flows` dataset we have a Date value that will allow us extract a Year and month
+
+--
+
+
+```r
+flows %&gt;%
+  select(Date, Flow) %&gt;% 
+  filter(Date &gt; as.Date('2010-01-01')) %&gt;%
+  mutate(Year  = format(Date, "%Y"),
+         Month = format(Date, "%m")) %&gt;% 
+  glimpse()
+```
+
+```
+Rows: 4,482
+Columns: 4
+$ Date  &lt;date&gt; 2010-01-02, 2010-01-03, 2010-01-04, 2010-01-05, 2010-01-06, 201…
+$ Flow  &lt;dbl&gt; 7870, 6920, 5860, 7860, 10000, 10100, 9760, 9130, 8600, 7040, 65…
+$ Year  &lt;chr&gt; "2010", "2010", "2010", "2010", "2010", "2010", "2010", "2010", …
+$ Month &lt;chr&gt; "01", "01", "01", "01", "01", "01", "01", "01", "01", "01", "01"…
+```
+
+---
+
+# Arrange 
+
+- orders the rows of a `data.frame` rows by the values of selected columns.
+
+
+
+```r
+tmp  = flows %&gt;%
+  select(Date, Flow) %&gt;% 
+  filter(Date &gt; as.Date('2020-01-01')) %&gt;%
+  mutate(Year  = format(Date, "%Y"),
+         Month = format(Date, "%m")) 
+  
+head(arrange(tmp, as.numeric(Year)))
+```
+
+```
+        Date Flow Year Month
+1 2020-01-02 3200 2020    01
+2 2020-01-03 3100 2020    01
+3 2020-01-04 2420 2020    01
+4 2020-01-05 2260 2020    01
+5 2020-01-06 2550 2020    01
+6 2020-01-07 3210 2020    01
+```
+
+```r
+head(arrange(tmp, -as.numeric(Year)))
+```
+
+```
+        Date  Flow Year Month
+1 2022-01-01  5790 2022    01
+2 2022-01-02  5650 2022    01
+3 2022-01-03  6550 2022    01
+4 2022-01-04  6640 2022    01
+5 2022-01-05  8450 2022    01
+6 2022-01-06 10500 2022    01
+```
+
+
+---
+
+## `summarize()`
+
+Have you ever had questions like "_what is the mean streamflow?_", but only have daily data?
+
+- `summarize()` takes a dataset with n observations, computes requested values, and returns a dataset with 1 observation.
+
+
+
+```r
+flows %&gt;% 
+ select(Date, Flow) %&gt;% 
+ mutate(Year  = format(Date, "%Y")) %&gt;%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow))
+```
+
+```
+     meanQ  maxQ
+1 2802.225 25700
+```
+
+---
+
+## `group_by()`
+
+Have you ever had questions like "_what is the mean annual streamflow?_", but only have daily data?
+- `group_by()` adds extra structure to your dataset by grouping information (think of atomic diminsion)
+
+- `mutate()` and `summarize()` honor groupings.
+
+--
+
+Combined with the verbs like `select`, `filter`, and `arrange` these new tools allow you to solve an extremely diverse set of problems with relative ease.
+
+
+```r
+tt = flows %&gt;% 
+ select(Date, Flow) %&gt;% 
+ mutate(Year  = format(Date, "%Y")) %&gt;%
+ group_by(Year)
+
+paint::paint(tt)
+```
+
+```
+tibble [17785, 3] 
+grouped by: Year [50] 
+Date date 1973-08-01 1973-08-02 1973-08-03 1973-08-04 1973-~
+Flow dbl  809 828 829 930 939 939
+Year chr  1973 1973 1973 1973 1973 1973 
+```
+
+---
+
+
+```r
+tt2 = tt %&gt;%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow))
+
+glimpse(tt2)
+```
+
+```
+Rows: 50
+Columns: 3
+$ Year  &lt;chr&gt; "1973", "1974", "1975", "1976", "1977", "1978", "1979", "1980", …
+$ meanQ &lt;dbl&gt; 4668.549, 3658.748, 3610.696, 2339.740, 2859.581, 2206.038, 2378…
+$ maxQ  &lt;dbl&gt; 13200, 14400, 14100, 15000, 16200, 11300, 12000, 14700, 17000, 1…
+```
+
+---
+
+## Dont forget!
+
+- `group_by` adds _structure_ to your `data.frame` that impacts how data is manipulated, when done with your groupings dont forget to `ungroup()`
+
+
+```r
+flows %&gt;% 
+ select(Date, Flow) %&gt;% 
+ mutate(Year  = format(Date, "%Y")) %&gt;%
+ group_by(Year) %&gt;%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow)) %&gt;%
+ ungroup()
+```
+
+```
+# A tibble: 50 × 3
+   Year  meanQ  maxQ
+   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;
+ 1 1973  4669. 13200
+ 2 1974  3659. 14400
+ 3 1975  3611. 14100
+ 4 1976  2340. 15000
+ 5 1977  2860. 16200
+ 6 1978  2206. 11300
+ 7 1979  2378. 12000
+ 8 1980  2548. 14700
+ 9 1981  2976. 17000
+10 1982  3424. 15100
+# … with 40 more rows
+```
+
+---
+class: inverse, center, middle
+# When One Table is not enough
+---
+
+
+# Relational Data
+
+- There will come a time when you need data from different sources. 
+
+--
+
+- When this happens we must **join** -- or merge -- multiple `data.frames`
+
+--
+
+- To merge data, we have to find a point of _commonality_
+
+--
+
+- The attribute of _commonality_ is the _relation_ (e.g. realational data!)
+
+---
+
+# Relational Data
+
+To work with relational data we need "verbs" that work with _pairs_ (**2**) of tables.
+
+--
+
+ - **Mutating joins**: add *new* variables to one table from matching observations in another.
+
+--
+
+ - **Filtering joins**:  filter observations from one table if they match an observation in the other table.
+
+--
+
+The most common place to find relational data is in a relational database management system (or RDBMS)
+
+
+---
+
+# Keys
+
+- The _variables_ used to connect a pair tables are called **keys**.
+
+--
+
+- A key is a variable (or set of variables) that uniquely identifies an observation or "unit". 
+
+
+
+---
+
+# Keys
+
+There are two types of keys:
+
+--
+
+- **Primary keys**: *uniquely* identify observations in its own table. 
+
+--
+
+- **Foreign keys**: *uniquely* identify observations in another table. 
+
+--
+
+- A _primary_ key and a corresponding _foreign_ key form a _relation._ 
+
+--
+
+- Relations are typically one-to-many but can be one-to-one
+
+---
+
+
+# Todays Data:
+
+.pull-left[
+
+```r
+band_members
+```
+
+```
+# A tibble: 3 × 2
+  name  band   
+  &lt;chr&gt; &lt;chr&gt;  
+1 Mick  Stones 
+2 John  Beatles
+3 Paul  Beatles
+```
+]
+
+.pull-right[
+
+```r
+band_instruments
+```
+
+```
+# A tibble: 3 × 2
+  name  plays 
+  &lt;chr&gt; &lt;chr&gt; 
+1 John  guitar
+2 Paul  bass  
+3 Keith guitar
+```
+]
+
+
+---
+class: center,middle
+# The basics
+&lt;img src="img/sql-table-joins.png"&gt; 
+---
+
+---
+class: inverse, center, middle
+# Mutating Joins
+add *new* variables to one table from matching observations in another.
+---
+
+---
+# Inner Join
+
+If there are multiple matches between x and y, all combination of the matches are returned. 
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### inner_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: yellow !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+# The other mutating joins
+
+
+.pull-left[
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+**left_join(x, y)**: Return all rows from _x_, and all columns from _x_ and _y_. 
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Stones&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+**right_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from _x_ and _y_. 
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+**full_join(x, y)**: Return all rows and columns from both _x_ and _y_.
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Stones&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+---
+class: middle, center, inverse 
+# Filtering Joins
+
+"Filtering" joins keep cases from the LHS
+---
+
+# Semi Join
+
+**semi_join(x, y)**:  Return all rows from _x_ where there are matching values in _ y_, keeping just columns from _x_. 
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### semi_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: gray50 !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: gray50 !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: gray50 !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: navy !important;background-color: gray50 !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+---
+
+# Anti Join
+
+**anti_join(x, y)**: Return all rows from _x_ where there are **not** matching values in _y_, keeping just columns from _x_. 
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### anti_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+# When keys dont share a name
+
+.pull-left[
+
+```r
+(band_members2 = band_members %&gt;% 
+  select(first_name = name, band))
+```
+
+```
+# A tibble: 3 × 2
+  first_name band   
+  &lt;chr&gt;      &lt;chr&gt;  
+1 Mick       Stones 
+2 John       Beatles
+3 Paul       Beatles
+```
+]
+
+.pull-right[
+
+```r
+inner_join(band_members2, 
+           band_instruments, 
+           by = c('first_name' = 'name'))
+```
+
+```
+# A tibble: 2 × 3
+  first_name band    plays 
+  &lt;chr&gt;      &lt;chr&gt;   &lt;chr&gt; 
+1 John       Beatles guitar
+2 Paul       Beatles bass  
+```
+]
+
+---
+
+# Summary
+
+- To a computer all data is bytes
+- Software like R/Python know how to interpret bytes as values
+- Multiple values can be stored with structure
+- Like type values can be stored in atomic vectors and dislike types can be stored as lists
+
+- Both R and python make extensive use of data.frames which are lists with enforced equal length elements (columns)
+
+- SQL-ish and other data manipulations can be executed on data.frames for custom analysis, data creation, and question answering
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:10",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
