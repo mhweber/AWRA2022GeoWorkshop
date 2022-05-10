@@ -41,12 +41,12 @@ sessionInfo()
 We'll walk through some typical topological operations (spatial subsetting, spatial joins, dissolve) with vector data using `sf` - followed by a couple 'real world' spatial tasks.  We'll be using several of the geometric binary predicates described in `?sf::geos_binary_pred`. We'll also incorporate a bit of raster processing such as map algebra, cropping, and zonal statistics.
 
 ## Spatial Subsetting
-We'll work with gages data from the previous section, and incorporate NHD streamlines, basins and HUC12 data using web services to demonstrate spatial subsetting. We'll demonstrate using the `dataRetrieval` package to query the [Network Linked Data Index](https://labs.waterdata.usgs.gov/about-nldi/index.html) based on the [NLDI Interface] `dataRetrieval` package article by Mike. 
+We'll work with gages data from the previous section, and incorporate NHD streamlines, basins and HUC12 data using web services to demonstrate spatial subsetting. We'll demonstrate using the `dataRetrieval` package to query the [Network Linked Data Index](https://labs.waterdata.usgs.gov/about-nldi/index.html) based on the [NLDI Interface] `dataRetrieval` package article by Mike.
 
 First bring in gages and if we need to do again, promote to spatial features as we did in the last section - Importing. Note that when we do a select on specific attribute columns, the geometry column remains - geometry is sticky in `sf`!
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
 gages <- read_csv(system.file("extdata", "Gages_flowdata.csv", package = "awra2020spatial"))
-gages <- gages %>% 
+gages <- gages %>%
   st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs=4269)
 gages_sf <- gages %>%
   st_as_sf(coords = c("LON_NHD", "LAT_NHD"), crs = 4269, remove = FALSE) %>%
@@ -66,7 +66,7 @@ dataRetrieval::findNLDI(nwis = "14187200")
 What features are associated with this gage? We can specify upstream main channel and HUC12 - what is returned in our object is features associated with upstream flowlines and points representing HUC12 pourpoints
 ```{r}
 SouthSantiam <- dataRetrieval::findNLDI(nwis = "14187200",
-                         nav = "UM", 
+                         nav = "UM",
                          find = c("huc12", "flowlines","basin"))
 mapview(SouthSantiam$UM_flowlines, legend=FALSE) + mapview(SouthSantiam$UM_huc12pp, legend=FALSE) + mapview(SouthSantiam$basin, alpha.regions=.08, legend=FALSE)
 ```
@@ -117,7 +117,7 @@ title(main='Bike Paths in Parks in Austin')
 ```
 
 ## Spatial Join
-Here we'll demonstrate a spatial join operation on gages and the South Santiam mainstem we derived in previous steps.  
+Here we'll demonstrate a spatial join operation on gages and the South Santiam mainstem we derived in previous steps.
 ```{r join, message=FALSE, warning=FALSE, error=FALSE}
 SouthSantiam$UM_flowlines <- st_transform(SouthSantiam$UM_flowlines,3157)
 gages_Santiam <- st_join(gages_sf, SouthSantiam$UM_flowlines) # st_intersects is the default
@@ -140,11 +140,11 @@ We'll use data for Austin again to run a dissolve to get from block group to tra
 ```{r dissolve, message=FALSE, warning=FALSE, error=FALSE}
 library(ggplot2)
 parks$AREA <- st_area(parks)
-parks_zip <- parks %>% 
+parks_zip <- parks %>%
   group_by(ZIPCODE) %>%
   summarise(AREA = sum(AREA)) %>%
   ggplot() + geom_sf(aes(fill=(ZIPCODE))) +
-  ggtitle("Austin Parks by Zip Code") + 
+  ggtitle("Austin Parks by Zip Code") +
   theme_bw()
 parks_zip
 ```
@@ -156,14 +156,14 @@ Support for gridded data in R in recent year has been best implemented with the 
 * read and write almost any commonly used raster data format using `rgdal`
 * perform typical raster processing operations such as resampling, projecting, filtering, raster math, etc.
 * work with files on disk that are too big to read into memory in R
-* run operations quickly since the package relies on back-end C code 
+* run operations quickly since the package relies on back-end C code
 
 The [terra](https://github.com/rspatial/terra) package is the replacement for the `raster` package and has now superceeded it and we will largely focus on `terra` here. Examples here draw from both [Spatial Data Science with R and terra](https://rspatial.org/terra/index.html) and [An introduction to terra in Geocomputation with R](https://geocompr.robinlovelace.net/spatial-class.html#raster-data).  Use help("terra-package") in the console for full list of available `terra` functions and comparison to / changes from `raster`.
 
 Raster representation is currently in flux a bit in R now with three choices of packages - `raster` and now `terra` which we've mentioned, as well as [stars](https://r-spatial.github.io/stars/index.html) (spatiotemporal tidy arrays with R).
 
 To familiarize ourselves with the `terra` package, let's create an empty `SpatRaster` object - in order to do this we have to:
-* define the matrix (rows and columns) 
+* define the matrix (rows and columns)
 * define the spatial bounding box
 
 Note that typically we would be reading raster data in from a file rather than creating a raster from scratch. Run through code steps below to familiarize yourself with constructing a `RasterLayer` from scratch - you can provide a different bounding box for an area of your choosing.
@@ -180,7 +180,7 @@ isS4(myrast)
 myrast
 ```
 
-`terra` has dedicated functions addressing each of these components: 
+`terra` has dedicated functions addressing each of these components:
   - `dim(my_rast)` returns the number of rows, columns and layers
   - `ncell()` returns the number of cells (pixels)
   - `res()` returns the spatial resolution
@@ -188,11 +188,11 @@ myrast
   - `crs()` returns the coordinate reference system
 
 ### Exercise
-Exploring raster objects 
+Exploring raster objects
 
-1. what is the minimal data required to define a `SpatRaster`? 
-2. What is the CRS of our `SpatRaster`? 
-3. How do we pull out just the CRS for our r `SpatRaster`? 
+1. what is the minimal data required to define a `SpatRaster`?
+2. What is the CRS of our `SpatRaster`?
+3. How do we pull out just the CRS for our r `SpatRaster`?
 4. Building on this, what is the code to pull out just our xmin value in our extent, or bounding box?
 
 ### Solution
@@ -205,12 +205,12 @@ t
 
 2. We didn't provide one - `terra` uses default `crs` of WGS84 if you don't provide a `crs`
 
-3. 
+3.
 ```{r message=FALSE, warning=FALSE, error=FALSE}
 crs(myrast)
 ```
 
-4. 
+4.
 ```{r message=FALSE, warning=FALSE, error=FALSE}
 ext(myrast)
 # just grab xmin
@@ -364,7 +364,7 @@ plot(elev_crop)
 plot(CraterLake_tm, add=TRUE, col=NA, border='blue')
 ```
 
-And finally we can use `mask` to mask the raster to just inside the polygon outline of Crater Lake National Park.  
+And finally we can use `mask` to mask the raster to just inside the polygon outline of Crater Lake National Park.
 
 **Note** - if you have a large raster, it makes a HUGE difference to use crop first, then mask - mask is a much more computationally intensive operation so it will pay off to crop first then mask.
 
@@ -414,8 +414,8 @@ plot(elev_new)
 #### Focal Operations
 A simple focal window operation
 ```{r focal, message=FALSE, warning=FALSE, error=FALSE}
-elev_focal_mean = terra::focal(elevation_tm, 
-                   w = matrix(1, nrow = 25, ncol = 25), 
+elev_focal_mean = terra::focal(elevation_tm,
+                   w = matrix(1, nrow = 25, ncol = 25),
                    fun = mean)
 plot(elev_focal_mean)
 ```
@@ -443,4 +443,3 @@ SouthSantiamBasin <- st_transform(SouthSantiam$basin, projection(elevation))
 SouthSantiamBasin$MeanElevation <- raster::extract(elevation, SouthSantiamBasin, fun = mean, na.rm = T, small = T)
 print(SouthSantiamBasin$MeanElevation)
 ```
-

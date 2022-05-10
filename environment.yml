@@ -22,6 +22,7 @@ dependencies:
   - proplot
   - pytables
   - xarray-spatial
+  - osmnx
 
   - pip
   - pip:

@@ -43,7 +43,7 @@ sessionInfo()
 ### Vector Data
 For reading and writing vector data in R, the primary package you'll use is:
  * `sf`for vector formats such as [ESRI Shapefiles](https://en.wikipedia.org/wiki/Shapefile),  [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON), and [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) - both packages use **OGR**, which is a library under the [GDAL](https://en.wikipedia.org/wiki/GDAL) source tree,under the hood
- 
+
 We can quickly discover supported I/O vector formats with `sf`:
 ```{r message=FALSE, warning=FALSE, error=FALSE}
 print(paste0('There are ',st_drivers("vector") %>% nrow(), ' vector drivers available using st_read or read_sf'))
@@ -66,7 +66,7 @@ citylims <- st_read("citylim_2017.shp")
 
 ```{r}
 options(scipen=3)
-ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits') 
+ggplot(citylims) + geom_sf() + ggtitle('Oregon City Limits')
 ```
 
 #### Geodatabases
@@ -128,7 +128,7 @@ plot(states$geometry)
 #### Reading in subsets of vector data
 Imagine we have really large datasets we need to work with.  We can subset the data as we read-in using SQL with `sf` as in this toy example using states data above.  Let's try to read in just PNW states from the states .json data.  See [st_read](https://r-spatial.github.io/sf/reference/st_read.html) for another example of this using the `sf` package `nc` data.
 ```{r}
-query_str <- str_c('SELECT * FROM "gz_2010_us_040_00_500k" WHERE NAME IN (\'','Oregon', '\', \'','Washington','\',\'','Idaho','\')')                     
+query_str <- str_c('SELECT * FROM "gz_2010_us_040_00_500k" WHERE NAME IN (\'','Oregon', '\', \'','Washington','\',\'','Idaho','\')')
 states <- read_sf('https://eric.clst.org/assets/wiki/uploads/Stuff/gz_2010_us_040_00_500k.json',query = query_str)
 glimpse(states)
 plot(states$`_ogr_geometry_`)
@@ -143,11 +143,11 @@ head(available_tags("highway")) # get rid of head when you run - just used to tr
 ```
 
 ```{r osmdata2 , message=FALSE, warning=FALSE, error=FALSE}
-footway <- opq(bbox = "corvallis oregon") %>% 
-  add_osm_feature(key = "highway", value = c("footway","cycleway","path", "path","pedestrian","track")) %>% 
+footway <- opq(bbox = "corvallis oregon") %>%
+  add_osm_feature(key = "highway", value = c("footway","cycleway","path", "path","pedestrian","track")) %>%
   osmdata_sf()
 footway <- footway$osm_lines
-rstrnts <- opq(bbox = "corvallis oregon") %>% 
+rstrnts <- opq(bbox = "corvallis oregon") %>%
     add_osm_feature(key = "amenity", value = "restaurant") %>%
     osmdata_sf()
 rstrnts <- rstrnts$osm_points
@@ -173,7 +173,7 @@ Based on examples of reading in different datasets and subsetting, try to find a
 ### Raster Data
 For reading and writing raster data in R, the primary packages you'll use are:
  * `raster`, `terra`, or `stars` for raster formats such as [GeoTIFF](https://en.wikipedia.org/wiki/GeoTIFF) or [ESRI or ASCII grid](https://en.wikipedia.org/wiki/Esri_grid) using [GDAL](https://en.wikipedia.org/wiki/GDAL) under the hood.
- 
+
 `raster` has been superceeded by `terra` so I will only show examples of `terra` here, and `stars` provides additional funcionality for dealing with spatio-temporal arrays, is `tidyvere`-compliant and works with `sf`, so I prefer it in many ways to `terra`.
 
 We can get a list of all `gdal` drivers available via `sf`:
@@ -208,9 +208,9 @@ read_stars(tif) %>%
 We'll get a sense for what 'slice' and 'index' above are doing when we get into geoprocessing.
 
 ### Convert flat files to spatial
-We often have flat files, locally on our machine or accessed elsewhere, that have coordinate information which we would like to make spatial. 
+We often have flat files, locally on our machine or accessed elsewhere, that have coordinate information which we would like to make spatial.
 
-In the steps below, we 
+In the steps below, we
 
   1. read in a .csv file of USGS gages in the PNW that have coordinate columns
   2. Use `st_as_sf` function in `sf` to convert the data frame to an `sf` spatial simple feature collection by:
@@ -219,7 +219,7 @@ In the steps below, we
       c. opting to retain the coordinate columns as attribute columns in the resulting `sf` feature collection.
   3. Keep only the coordinates and station ID in resulting `sf` feature collection, and
   4. Plotting our gages as spatial features with `ggplot2` using `geom_sf`.
-  
+
 ```{r vector_drivers, message=FALSE, warning=FALSE, error=FALSE}
 gages = read_csv(system.file("extdata/Gages_flowdata.csv", package = "Rspatialworkshop"))
 gages_sf <- gages %>%
