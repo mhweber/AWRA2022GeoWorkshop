@@ -34,3 +34,10 @@ knitr::opts_chunk$set(echo = FALSE)
 ![](speed.png){height=75% width=75% }
 
 </div>
+
+## Logistics
+
+- I'll be stepping through code examples in an [R Notebook](https://rmarkdown.rstudio.com/lesson-10.html) and running code in RMarkdown files in RStudio
+- I'll switch over to a Jupyter Notebook during this section to demonstrate analogous code steps in Python to what we run in R
+- You can run the Jupyter Notebooks locally if you set up a local environment 
+or you can run in Binder
