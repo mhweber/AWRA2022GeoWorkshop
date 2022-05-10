@@ -659,8 +659,12 @@ or a *dense* matrix
 st_intersects(x, y, sparse = FALSE)
 ```
 
+---
+
+# Boolean, Spatial Operators
+
 ```{r}
-sf::st_filter(x,y, .predicate = st_intersects)
+st_filter(x,y, .predicate = st_intersects)
 
 sf::st_filter(x,y, .predicate = st_contains)
 ```
@@ -693,9 +697,10 @@ sf::st_join(y, x, .predicate = st_intersects)
   select(name))
 
 ```
---
+
+---
  
-# Populations Data!
+# Population Data!
 
 ```{r}
 (popdata = read.csv('https://www2.census.gov/programs-surveys/popest/datasets/2020-2021/counties/totals/co-est2021-alldata.csv') |> 
