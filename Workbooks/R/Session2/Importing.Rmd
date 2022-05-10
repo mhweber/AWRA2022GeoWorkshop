@@ -41,8 +41,8 @@ sessionInfo()
   + Geocoding data
 
 ### Vector Data
-For reading and writing vector data in R, the primary package you'll use is:
- * `sf`for vector formats such as [ESRI Shapefiles](https://en.wikipedia.org/wiki/Shapefile),  [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON), and [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) - both packages use **OGR**, which is a library under the [GDAL](https://en.wikipedia.org/wiki/GDAL) source tree,under the hood
+For reading and writing vector data in R, the primary package you'll use is
+ `sf`for vector formats such as [ESRI Shapefiles](https://en.wikipedia.org/wiki/Shapefile),  [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON), and [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) - `sf` uses **OGR**, which is a library under the [GDAL](https://en.wikipedia.org/wiki/GDAL) source tree,under the hood
 
 We can quickly discover supported I/O vector formats with `sf`:
 ```{r message=FALSE, warning=FALSE, error=FALSE}
