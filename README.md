@@ -2,8 +2,19 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/cheginit/AWRA2022GeoWorkshop/HEAD)
 
+
 Material for [AWRA2022](https://www.awra.org/Members/Events_and_Education/Events/2022_GIS_Conference/2022_GWTC_Workshops.aspx)
 Geospatial R and Python Workshop.
+
+## Intro Material
+
+Loosly based on [Introduction of Geocoputation](https://mikejohnson51.github.io/spds/)
+
+ - [Data Type and Structure](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#1)
+
+ - [Data Manipulation](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#2)
+
+ - [Vector Data 101](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#3)
 
 ## Getting Started
 
@@ -66,10 +77,6 @@ Here is a list of some useful geospatial tools and resources:
   * [Awesome Geospatial](https://github.com/sacridini/Awesome-Geospatial):
     A Long list of geospatial analysis tools.
 * R:
-  * [HydroData](https://mikejohnson51.github.io/HydroData/):
-    An open-source tool that is designed
-    to help (1) find, (2) get, (3) visualize, and (4) format disparate earth systems data through
-    a core language (R).
   * [EPA R User Group R Spatial Workshop](https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/):
     Workshop material from 2021 EPA R User Group meeting on spatial analysis in R
   * [AWRA 2020 R Spatial Workshop](https://mhweber.github.io/AWRA_2020_R_Spatial/):
