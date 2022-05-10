@@ -3,7 +3,7 @@ title: "Concepts: Data Type, Strucuture and Manipulation"
 output:
   xaringan::moon_reader:
     lib_dir: libs
-    css: ucsb.css
+    css: awra.css
     nature:
       ratio: 16:10
       highlightStyle: github

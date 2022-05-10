@@ -6,7 +6,7 @@
     <script src="libs/header-attrs-2.14/header-attrs.js"></script>
     <script src="libs/kePrint-0.0.1/kePrint.js"></script>
     <link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
-    <link rel="stylesheet" href="ucsb.css" type="text/css" />
+    <link rel="stylesheet" href="awra.css" type="text/css" />
   </head>
   <body>
     <textarea id="source">
@@ -1330,6 +1330,9 @@ df1$name
 ```
 
 ---
+class: center, middle, inverse
+# Data Manipulation
+---
 
 The manipulation of data.frames almost always comes back to SQL queries
 
@@ -1338,6 +1341,8 @@ R and Python abstract the SQL logic and provide function-ized methods for execut
 `dplyr` is the principle package for doing this in R, while pandas is the "go to" in python.
 
 dplyr describes is functionality as a 'grammar of data manipulation` which is useful for discussion in that the functions we call, are things we "do" to the data.frame.
+
+---
 
 ## Verbs
 
@@ -1385,7 +1390,7 @@ glimpse(flows)
 ```
 
 ```
-Rows: 17,784
+Rows: 17,785
 Columns: 5
 $ agency_cd &lt;chr&gt; "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USGS", "USG…
 $ site_no   &lt;chr&gt; "14187200", "14187200", "14187200", "14187200", "14187200", …
@@ -1462,7 +1467,7 @@ select(flows, Date, Flow) %&gt;%
 ```
 
 ```
-Rows: 17,784
+Rows: 17,785
 Columns: 2
 $ Date &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05, 1973…
 $ Flow &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, 945, …
@@ -1481,7 +1486,7 @@ select(flows, Date, flow_cfs = Flow) %&gt;%
 ```
 
 ```
-Rows: 17,784
+Rows: 17,785
 Columns: 2
 $ Date     &lt;date&gt; 1973-08-01, 1973-08-02, 1973-08-03, 1973-08-04, 1973-08-05, …
 $ flow_cfs &lt;dbl&gt; 809, 828, 829, 930, 939, 939, 944, 932, 927, 925, 927, 928, 9…
@@ -1516,7 +1521,7 @@ flows %&gt;%
 ```
 
 ```
-Rows: 4,481
+Rows: 4,482
 Columns: 4
 $ Date  &lt;date&gt; 2010-01-02, 2010-01-03, 2010-01-04, 2010-01-05, 2010-01-06, 201…
 $ Flow  &lt;dbl&gt; 7870, 6920, 5860, 7860, 10000, 10100, 9760, 9130, 8600, 7040, 65…
@@ -1588,7 +1593,7 @@ flows %&gt;%
 
 ```
      meanQ  maxQ
-1 2801.957 25700
+1 2802.225 25700
 ```
 
 ---
@@ -1615,7 +1620,7 @@ paint::paint(tt)
 ```
 
 ```
-tibble [17784, 3] 
+tibble [17785, 3] 
 grouped by: Year [50] 
 Date date 1973-08-01 1973-08-02 1973-08-03 1973-08-04 1973-~
 Flow dbl  809 828 829 930 939 939

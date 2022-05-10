@@ -3,7 +3,7 @@ title: "Concepts: Data Manipulation"
 output:
   xaringan::moon_reader:
     lib_dir: libs
-    css: ucsb.css
+    css: awra.css
     nature:
       ratio: 16:10
       highlightStyle: github
@@ -439,7 +439,7 @@ kable(band_members) %>%
 ```{r, echo = FALSE}
 kable(band_instruments, echo = FALSE) %>%
   kable_styling(full_width = FALSE, position = "float_left", font_size = 24) 
-````
+```
 
 ]
 
