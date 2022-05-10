@@ -1,0 +1,242 @@
+---
+title: "Visualizing Spatial Data"
+author: "Marc Weber"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    toc_depth: 4
+  html_document:
+    toc: yes
+    keep_md: true
+    toc_depth: '4'
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+## Setup
+```{r}
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(mapview)
+library(readr)
+library(leaflet)
+library(terra)
+library(tigris)
+library(readxl)
+library(tidycensus)
+library(Rspatialworkshop)
+library(tmap)
+# census_api_key("YOUR API KEY GOES HERE")
+sessionInfo()
+```
+
+## Lesson Goals
+
+* Explore several mapping libraries in R
+* Construct a couple example visualizations with spatial data in R
+
+R is fantastic for making publication quality static maps, and for generating repetitive graphics through scripts;  we've already seen how to make simple maps using base plotting and `ggplot`. There are also a number of packages in R that link R code to plotting libraries developed in Javascript (or other languages) for interactive plotting and web integration.
+
+It can be hard to decide which mapping packages to learn and use - some nice advice from Martin Tennekes who created `tmap` that I follow in my work:
+  - If you know some `ggplot`, don't care about interactive maps, and don't want to spend a lot of time learning new packages, use `ggplot`
+  - If you want interactive maps as flexible as possible, use `leaflet`
+  - If you want to simply explore spatial objects ineractively as easily as possible, use `mapview`
+  - Otherwise, use `tmap`!
+
+### Chorpleths with tmap
+Note that to use `tidycensus` you'll need to set your Census API key. A key can be obtained from [here](http://api.census.gov/data/key_signup.html). 
+
+Here we'll start with a simple choropleth map of median household income in Benton county in Oregon.
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+options(tigris_use_cache = FALSE)
+benton_tracts <- get_acs(state = 'OR', county = 'Benton', geography = "tract",
+                         variables = "B19013_001", geometry = TRUE)
+
+# Rename a column
+benton_tracts <- benton_tracts %>% 
+  dplyr::rename(MedianIncome=estimate)
+tm_shape(benton_tracts) + tm_polygons(col="MedianIncome")
+```
+
+That's a pretty basic map - we can adjust a number of settings:
+ - breaks: we can set different breaks for our map
+ - n: we can control the number of bins
+ - palette: we can change the color palette
+ 
+These are just a few - let's play with those to start.
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+breaks = c(0, 40, 80, 120, 140) * 1000
+t1 <- tm_shape(benton_tracts) + tm_polygons(col="MedianIncome", breaks=breaks)
+t2 <- tm_shape(benton_tracts) + tm_polygons(col = "MedianIncome", n = 10)
+t3 <- tm_shape(benton_tracts) + tm_polygons(col = "MedianIncome", palette = "BuGn")
+tmap_arrange(t1, t2, t3, nrow = 1)
+```
+
+`tmap` also has `view` mode which can be handy
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+tmap_mode("view")
+tm_shape(benton_tracts) + tm_polygons(col="MedianIncome")
+```
+
+We can make multi-layered maps (shout out to Amalia Handler who used this in `tmap` demo for our lab group)
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+# Load data
+data(World, metro, rivers, land)
+
+# Set to static mode
+tmap_mode("plot")
+
+# Make map that is multilayered
+tm_shape(land) +
+    tm_raster("elevation", palette = terrain.colors(10)) +
+tm_shape(World) +
+    tm_borders("white", lwd = .5) +
+    tm_text("iso_a3", size = "AREA") +
+tm_shape(metro) +
+    tm_symbols(col = "red", size = "pop2020", scale = .5) +
+tm_legend(show = FALSE)
+```
+
+We can make faceted maps with `tmap`
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+# Set mode to interactive
+tmap_mode("view")
+
+# Plot it out
+tm_shape(World) +
+    tm_polygons(c("pop_est", "HPI","life_exp","well_being")) +
+    tm_facets(sync = TRUE, ncol = 2)
+```
+
+Here we plot elevation data and Crater Lake boundary data in `tmap`:
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+data(CraterLake)
+raster_filepath <- system.file("extdata", "elevation.tif", package = "Rspatialworkshop")
+elevation <- rast(raster_filepath)
+elevation <- terra::mask(elevation, vect(CraterLake))
+elevation <- project(elevation, '+proj=utm +zone=10 +ellps=GRS80 +units=m +no_defs')
+CraterLake <- st_transform(CraterLake, '+proj=utm +zone=10 +ellps=GRS80 +units=m +no_defs')
+map_crlk <- tm_shape(CraterLake) + tm_polygons(lwd = 2)
+map_crlkel = map_crlk +
+  tm_shape(elevation) + tm_raster(alpha = 0.7,palette = terrain.colors(12)) + tm_layout(legend.position = c("left","bottom"),
+          legend.width = 1)
+
+map_crlkel
+```
+
+### Exercise
+Look at some of the links in the `tmap` [GitHub repository](https://github.com/r-tmap/tmap/#reference) and specifically [tmap: get started!](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html) and see what modifications to plotting elevation and the Crater Lake park boundary you can come up with
+
+### Solution
+Just an example incorporating a number of settings available in `tmap` to produce cartographic output
+```{r, message=FALSE, error=FALSE, warning=FALSE, results='hide'}
+tm_shape(elevation) +
+  tm_raster(title = "Elevation", 
+            style = "cont",
+            palette = "-Spectral") +
+  tm_shape(CraterLake) +
+  tm_borders(col = "black", 
+             lwd = 1)+ 
+  tm_scale_bar(breaks = c(0, 10, 20),
+               text.size = .5,
+               position = c("left", "bottom")) +
+  tm_grid(n.x = 4, n.y = 3) +
+  tm_compass(position = c("right", "top"), 
+             type = "arrow", 
+             size = 1.5)
+```
+
+### Leaflet
+[Leaflet](https://leafletjs.com/) is an extremely popular open-source javascript library for interactive web mapping, and the `leaflet` R package allows R users to create Leaflet maps in R. `Leaflet` can plot `sf` objects, or x / y coordinates, and can plot points, lines or polygons. There are a number of [base layers you can choose from](http://leaflet-extras.github.io/leaflet-providers/preview/index.html).  It's worth spending some time exploring the excellent [Leaflet for R site](https://rstudio.github.io/leaflet/).
+
+Here we make a simple of leaflet map of our location:
+```{r leaflet, message=FALSE, warning=FALSE, error=FALSE}
+content <- paste(sep = "<br/>",
+  "<b><a href='https://www.marriott.com/en-us/hotels/ausap-austin-marriott-south/overview/'>Marriot Austin South</a></b>",
+  "4415 South IH-35",
+  "Austin, Texas 78744"
+)
+
+leaflet() %>% addTiles() %>%
+  addPopups(-97.7534993, 30.210605, content,
+    options = popupOptions(closeButton = FALSE)
+  )
+```
+
+### mapview
+[Mapview](https://r-spatial.github.io/mapview/index.html) is a package designed for quick and easy interactive visualizations of spatial data - it makes use of `leaflet` but simplifies mapping functions compared to the `leaflet` package.  
+
+It's easy to layer features with `mapview` - you can supply a list of objects to `mapview` or use + syntax as with `ggplot`.
+
+This is the package I choose to use almost all the time in R for quick interactive visualizations
+```{r message=FALSE, error=FALSE, warning=FALSE}
+counties <- counties("Oregon", cb = TRUE)
+benton <- counties[counties$NAME=='Benton',]
+fpath <- system.file("extdata", "Gages_flowdata.csv", package="Rspatialworkshop")
+
+gages <- read_csv(fpath,show_col_types = FALSE)
+gages_sf <- gages %>%
+  st_as_sf(coords = c("LON_SITE", "LAT_SITE"), crs = 4269, remove = FALSE) 
+st_crs(gages_sf)==st_crs(benton)
+# remember spatial indexing?
+gages_benton <- gages_sf[benton,]
+mapview(gages_benton) + benton
+```
+
+### Exercise
+Glance through the [`mapview` basics](https://r-spatial.github.io/mapview/articles/articles/mapview_01-basics.html) and adjust legend and attributes.  Take a look at [`mapview` advanced controls](https://r-spatial.github.io/mapview/articles/articles/mapview_02-advanced.html) as well and try plotting stations and the county polygon together, this time modifying features such as thicker black outline and transparent fill for the county outline and colorizing gages by their average flow ('AVE').
+
+### Solution
+```{r message=FALSE, error=FALSE, warning=FALSE}
+mapview(gages_benton,zcol='AVE') + mapview(benton, alpha.regions=.07, color='black', lwd=2)
+```
+
+### Adding Web Map services in `mapview`
+We'll visualize data with mapview and load web map layers alongside using `mapview` and underlying `leaflet` functionality.
+
+First we load load an excel file containing coordinate information in a known projection and promote to an `sf` spatial data frame.
+```{r message=FALSE, error=FALSE, warning=FALSE}
+fpath <- system.file("extdata", "Station_Locations.xlsx", package="Rspatialworkshop")
+stations <- read_xlsx(fpath)
+glimpse(stations)
+summary(stations$x)
+# common clean up steps for spatial data - we can't use data missing coordinates so drop those records
+stations <- stations[complete.cases(stations),]
+# often spatial data in projected coordinates will have missing negative values for x values - common thing to fix:
+stations$x[stations$x > 0] <- 0 - stations$x[stations$x > 0]
+stations <- stations %>% 
+  st_as_sf(coords = c("x", "y"), remove = FALSE)
+
+# in this case we know the particular Albers projection and have the information as a proj string
+st_crs(stations) <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs" 
+```
+
+Basic interactive map of our spatial stations with `mapview`:
+```{r message=FALSE, error=FALSE, warning=FALSE}
+mapview(stations)
+```
+
+We know of web mapping services for the  National Hydrography dataset - these are stream site locations so imagine we want to visualize how closely these sites match a known rivers and stream network:
+```{r message=FALSE, error=FALSE, warning=FALSE}
+# create a mapview object with our stations:
+m <- mapview(stations, legend=FALSE)
+
+# we configure the map attribute of our mapview object - try:
+# 'attributes(m) 
+# to see those attributes
+
+#  The map attribute for mapview accepts leaflet methods - in this case we use addWMSTiles to add web map service tiles to the map
+m@map <- m@map %>% addWMSTiles(group = 'NHDPlus',
+                              "https://watersgeo.epa.gov/arcgis/services/NHDPlus_NP21/NHDSnapshot_NP21/MapServer/WmsServer?",
+                              layers  = 4,
+                              options = WMSTileOptions(format = "image/png", transparent = TRUE),
+                              attribution = "") %>% addWMSTiles(group = 'NHDPlusHR',
+                                                                "https://hydro.nationalmap.gov/arcgis/services/NHDPlus_HR/MapServer/WMSServer?",
+                                                                layers  = 9,
+                                                                options = WMSTileOptions(format = "image/png", transparent = TRUE),
+                                                                attribution = "")  %>% mapview:::mapViewLayersControl(names = c("NHDPlus","NHDPlusHR"))
+m
+```
