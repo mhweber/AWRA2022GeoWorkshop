@@ -1,0 +1,989 @@
+---
+title: "Concepts: Data Type, Strucuture and Manipulation"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: ucsb.css
+    nature:
+      ratio: 16:10
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+
+```{css, eval = TRUE, echo = F}
+.remark-code{font-size: 100%}
+```
+
+```{r setup, include=FALSE}
+oldoption <- options(scipen = 9999)
+options(scipen = 9999)
+
+knitr::opts_chunk$set(fig.width = 6, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      comment = "", 
+                      cache = FALSE, 
+                      fig.retina = 3)
+
+# Formating
+library(knitr)
+library(flipbookr)
+library(kableExtra)
+col1 = "navy"
+col2 = "yellow"
+
+# Work
+library(dplyr)
+library(dataRetrieval)
+
+```
+
+
+## Road Map of Intro
+
+~ 20 mintues
+ - Data Types
+ - Data Structures
+ - Data Manipulation
+
+~ 20 minutes
+Vector Data (sf, CRS)
+  - Primatives
+  - PCS vs GCS 
+  - measures
+  - Predicates Operations
+
+---
+
+# Learning Objectives
+
+- Understand how you, software, and computers understand values
+
+- Understand how valus can be structured
+  - vectors, dimensions/attributes, data.frames
+  
+- Understand how data.frames can be operated on
+  - filter
+  - select
+  - mutate
+  - summarize
+  - group_by
+
+- Understand how two tables can be joined
+
+---
+
+# Data
+
+Computers convert bytes --> hex --> value
+
+- Humans read values
+- Software reads Hex bytes
+- Hardware reads Binary bytes
+
+---
+
+## Example
+
+<img src="img/04-ascii-hex-binary.png">
+
+---
+
+## What's the difference between 3 and '3'
+
+--
+
+**To us**: _meaning_
+
+--
+
+**To software**: _hows its handled_
+
+--
+
+**To a computer**: _nothing_
+
+--
+
+Thus, there is a need for a computer "guessable" / human definable data `types`.
+
+---
+class: center, middle, inverse
+# Data Types (main 6)
+---
+
+### 1. Double/float (e.g. `2`, `2.15`)
+
+- Values with decimals
+- Generally the default computational data type
+- There are three special values unique to doubles: `Inf`, `-Inf`, and `NaN` (not a number). 
+
+
+---
+
+### 2. integer (e.g. `2L`)
+
+- Values _without_ decimals 
+- To create an integer you must follow the a number with an uppercase L.
+- Take less memory then doubles but this is rarely an issue on modern computers and "normal" size data
+
+```{r}
+object.size(1:1000)
+object.size(as.numeric(1:1000))
+```
+
+---
+
+### 3. character (e.g. `"x"`, `"Welcome!"`)
+
+- Stores text ranging in size from a single letter to a novel.
+- surrounded by `"` ("here") or `'` ('there'). 
+- Special characters are escaped with `\`; see `?Quotes` for full details.
+
+---
+
+### 4. logical (e.g. `TRUE`, `FALSE`)
+
+- Logical values store boolean values (`TRUE` and `FALSE`). 
+- Useful for checking conditions and controlling the flow of a program.
+- Or, for checking binary conditions (like on,off;  open/closed; >100)
+- Logicals can be written in full (TRUE or FALSE), or abbreviated (T or F).
+- Logicals are effectively 0 (F) and (1)
+
+```{r}
+as.numeric(TRUE)
+as.integer(FALSE)
+```
+
+---
+
+### 5. raw (e.g. holds `bytes`)
+### 6. complex (e.g. `1+4i`) 
+
+---
+
+`r flipbookr::chunk_reveal("type")`
+
+```{r type, include = F}
+# Numeric
+typeof(1.9)
+
+# Integer
+typeof(1L)
+
+# Boolean
+typeof(TRUE)
+
+# Character
+typeof("Welcome")
+```
+
+
+---
+class: center, middle, inverse
+# Data Structure
+### Storing more then one value requires **structure**!
+---
+
+## Vectors
+
+- **Vectors** come in two types: _atomic_ and _list_
+
+--
+
+-  _atomic_ vectors elements must have the same **type**
+
+--
+
+- _lists_ elements can have different **types** 
+
+--
+
+- `NULL` serves as a generic zero length vector. 
+
+--
+
+- This diagram - taken from [here](https://adv-r.hadley.nz/vectors-chap.html) illustrates the basic relationships:
+
+
+<img src="img/04-vec-list-01.png">
+
+
+---
+
+### Atomic Vectors
+
+A vector containing one **type** of data is called an "atom"
+  - Can created using the `c()` (combine) function in R and with brackets `[` in Python numpy
+  - The length can be checked with `length()` (R) or `len()` (python)
+
+
+<img src="img/04-vec-list-02.png">
+
+---
+
+`r flipbookr::chunk_reveal("atom")`
+
+```{r atom, include = F}
+# Numeric
+dbl_vec = c(1.9, 2, 3.5)
+typeof(dbl_vec)
+length(dbl_vec)
+
+lg_vec = c(TRUE, FALSE, F, T)
+typeof(lg_vec)
+length(lg_vec)
+
+```
+
+---
+
+# Missing Values!
+
+- Missing values still need a place holder
+- Missing values are denoted with `NA` (short for not applicable). 
+- Missing values are 'infectious': most computations involving a missing value will return another missing value.
+
+```{r}
+x = c(2,4)
+y = c(2, NA)
+
+x + y
+```
+
+---
+
+## Cohersion
+
+- As seen above, type is a property of the vector
+
+- When you try and combine different types they will be coerced in a fixed order: 
+
+  - character → double → integer → logical
+
+- Coercion often happens automatically.
+
+- Failed coercion generates a warning and a missing value
+
+---
+`r flipbookr::chunk_reveal("atoms")`
+
+```{r atoms, include = FALSE}
+c("a", 1)
+
+c("a", TRUE)
+
+c(4.5, 1L)
+
+c("1", 18, "GIS")
+
+as.numeric(c("1", 18, "GIS"))
+
+as.logical(c("1", 18, "GIS"))
+```
+
+---
+
+# Subsetting Atomics
+
+Atomics can be subset using the position(s) (explicit or logical) of each value
+
+```{r}
+# Atomic numeric vector
+(x = c(3.4, 7, 18, 9.6))
+
+# Third Value
+x[3]
+
+# Third and Fourth value
+x[c(3,4)]
+
+# Drop the third value
+x[-3]
+
+# Keep the 1 and 2 value, but drop 3 and 4
+x[c(T,T,F,F)]
+```
+
+---
+
+## Diminsions
+
+- Atomics do **not** include a number of important structures like matrices (2D) or arrays (3D), factors, or date-times. 
+
+- These structures are built on top of atomic vectors by adding **attributes**.
+
+- For example, adding a `dim` attribute to a vector allows it to behave like a 2D matrix or a XD array.
+
+---
+
+### Matrix
+
+- A matrix is 2D atom (row, column)
+ - Same data types
+ - Same column length
+
+
+- For spatial data, this corresponds to the structure of gridded/raster data. 
+
+```{r matrix}
+# Use matrix
+(mat = matrix(1:9, nrow = 3))
+```
+
+---
+
+# Subsetting Matrices
+
+Now that a structure (row, column) has been assigned,
+Subsetting requires a row, column (i,j) syntax
+
+--
+
+```{r}
+(x = matrix(1:9, nrow = 3))
+
+x[3,]
+x[,3]
+x[3,3]
+```
+
+---
+
+### Arrays
+
+- An array is a 3D atom [row, column, slice]
+
+
+- For spatial data, this is corresponds to the structure of gridded/raster data with a time diminsion 
+
+
+`r flipbookr::chunk_reveal("arrays")`
+
+```{r arrays, include = F}
+(array(c(1:12), dim = c(3,2,2)))
+```
+
+---
+
+
+# Subsetting Arrays
+
+- Now that a structure (row, column, slice) has been assigned,
+
+- Subsetting requires a row, column (i,j,z) syntax
+
+.pull-left[
+```{r, subarr}
+(x = array(1:12, dim = c(2,2,3))) 
+```
+]
+
+.pull-right[
+```{r}
+x[1,,]
+x[,1,]
+x[,,1]
+```
+
+
+---
+
+## Lists
+
+Lists allow each list element to be any type/strucutre.
+
+```{r}
+(my_list <- list(
+  matrix(1:4, nrow = 2), 
+  "GIS is great!", 
+  c(TRUE, FALSE, TRUE), 
+  c(2.3, 5.9)
+))
+
+typeof(my_list)
+```
+
+---
+
+# Subsetting Lists
+
+- With fleaxabilty of list objects comes new subsetting operartors.
+
+- The `[[`  allows an element of list to be accessed:
+
+```{r}
+my_list[[1]]
+
+my_list[[1]][1,2]
+```
+
+---
+
+### Data Frames
+
+A `data.frame` is a `structure` built on top of **lists**
+
+--
+
+- However, the length of each vector (list or atomic) **must** be the same. 
+
+--
+
+- This gives data frames their rectangular structure and explains why they share the properties of both matrices and lists
+
+---
+
+`r flipbookr::chunk_reveal("smalldf", widths = c(60,40,0), title = "# A small data.frame")`
+
+```{r smalldf, include = F}
+(df1 <- data.frame(name = c("George", "Stan", "Carly"), 
+                  age  = c(75,15,31),
+                  retired = c(T,F,F)))
+                  
+typeof(df1)
+```
+
+---
+
+## Subsetting data.frames
+
+data.frames can be subset like a matrix:
+
+```{r}
+df1[1,2]
+```
+
+--
+
+data.frames can be subset like a list:
+
+```{r}
+df1[[2]]
+```
+
+--
+
+And, with a new operation* `$` that allows access by column name:
+
+```{r}
+df1$name
+```
+
+---
+class: center, middle, inverse
+# Data Manipulation
+---
+
+The manipulation of data.frames almost always comes back to SQL queries
+
+R and Python abstract the SQL logic and provide function-ized methods for executing these core tasks.
+
+`dplyr` is the principle package for doing this in R, while pandas is the "go to" in python.
+
+dplyr describes is functionality as a 'grammar of data manipulation` which is useful for discussion in that the functions we call, are things we "do" to the data.frame.
+
+---
+
+## Verbs
+
+We will cover two "pure" verbs:
+
+- `select()`: picks variables based on their names.
+- `filter()`: picks rows/observations based on their values.
+
+And three "manipulation" verbs
+- `mutate()`: adds new variables that are functions of existing variables
+- `summarise()`: reduces multiple values down to a single summary.
+- `arrange()`: changes the ordering of the rows.
+
+
+These all combine naturally with `group_by()` which allows you to perform any operation “by group”.
+
+--- 
+
+## The %>% (pipe) operator
+ 
+The pipe operator (`%>%`) will change your data workflow in R.
+
+This syntax leads to code that is much easier to write and to read.
+
+The RStudio keyboard shortcut: Ctrl+Shift+M (Windows), Cmd+Shift+M (Mac).
+
+The pipe passes the object on the left hand side of the pipe into the first argument of the right hand function
+
+To be %>% compatible, the `data.frame` is ALWAYS the fist argument to dplyr verbs
+
+---
+
+# Data
+
+For demonstration we will get some streamflow data from the USGS. The details of this function will come latter in the course so focus on the data
+
+```{r}
+flows = readNWISdv(siteNumbers = '14187200',
+                   parameterCd = "00060") %>% 
+  renameNWISColumns() 
+
+
+glimpse(flows)
+```
+
+---
+
+## Use `filter()` to subset on a condition
+
+- `filter()` takes logical (binary) expressions and returns the _rows_ in which all conditions are TRUE.
+
+- `filter()` does NOT impact columns
+
+
+--
+
+- Lets find all rows in `flows` data that in have Flow code A:
+
+```{r}
+filter(flows, Flow_cd == "A") %>% 
+  glimpse()
+```
+
+---
+
+## Use `filter()` to subset data on multiple conditions
+
+- Lets find all observations in `flows` where the Date is after `2000-01-01`, _and_ the Flow Code is A:
+
+--
+
+```{r}
+filter(flows, Flow_cd == "A", Date > as.Date("2010-01-01")) %>% 
+  glimpse()
+```
+
+---
+
+## Use `select()` to subset by variables or columns.
+
+- Use `select()` to subset the variables or columns you want by name (think of the `$` syntax).
+
+--
+
+```{r}
+select(flows, Date, Flow) %>%
+  glimpse()
+```
+
+---
+
+## Use `select()` to subset and rename
+
+`select()` can also be used to rename existing columns
+
+```{r}
+select(flows, Date, flow_cfs = Flow) %>%
+  glimpse()
+```
+
+---
+
+# Use mutate() to add new variables
+
+--
+
+- `mutate()` defines and inserts new variables into a existing `data.frame`
+
+--
+
+- `mutate()` builds new variables sequentially so you can reference earlier ones when defining later ones 
+
+--
+
+- In the `flows` dataset we have a Date value that will allow us extract a Year and month
+
+--
+
+```{r}
+flows %>%
+  select(Date, Flow) %>% 
+  filter(Date > as.Date('2010-01-01')) %>%
+  mutate(Year  = format(Date, "%Y"),
+         Month = format(Date, "%m")) %>% 
+  glimpse()
+```
+
+---
+
+# Arrange 
+
+- orders the rows of a `data.frame` rows by the values of selected columns.
+
+
+```{r}
+tmp  = flows %>%
+  select(Date, Flow) %>% 
+  filter(Date > as.Date('2020-01-01')) %>%
+  mutate(Year  = format(Date, "%Y"),
+         Month = format(Date, "%m")) 
+  
+head(arrange(tmp, as.numeric(Year)))
+
+head(arrange(tmp, -as.numeric(Year)))
+```
+
+
+---
+
+## `summarize()`
+
+Have you ever had questions like "_what is the mean streamflow?_", but only have daily data?
+
+- `summarize()` takes a dataset with n observations, computes requested values, and returns a dataset with 1 observation.
+
+
+
+```{r}
+flows %>% 
+ select(Date, Flow) %>% 
+ mutate(Year  = format(Date, "%Y")) %>%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow))
+  
+```
+
+---
+
+## `group_by()`
+
+Have you ever had questions like "_what is the mean annual streamflow?_", but only have daily data?
+- `group_by()` adds extra structure to your dataset by grouping information (think of atomic diminsion)
+
+- `mutate()` and `summarize()` honor groupings.
+
+--
+
+Combined with the verbs like `select`, `filter`, and `arrange` these new tools allow you to solve an extremely diverse set of problems with relative ease.
+
+```{r}
+tt = flows %>% 
+ select(Date, Flow) %>% 
+ mutate(Year  = format(Date, "%Y")) %>%
+ group_by(Year)
+
+paint::paint(tt)
+  
+```
+
+---
+
+```{r}
+tt2 = tt %>%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow))
+
+glimpse(tt2)
+```
+
+---
+
+## Dont forget!
+
+- `group_by` adds _structure_ to your `data.frame` that impacts how data is manipulated, when done with your groupings dont forget to `ungroup()`
+
+```{r}
+flows %>% 
+ select(Date, Flow) %>% 
+ mutate(Year  = format(Date, "%Y")) %>%
+ group_by(Year) %>%
+ summarize(meanQ = mean(Flow),
+           maxQ = max(Flow)) %>%
+ ungroup()
+```
+
+---
+class: inverse, center, middle
+# When One Table is not enough
+---
+
+
+# Relational Data
+
+- There will come a time when you need data from different sources. 
+
+--
+
+- When this happens we must **join** -- or merge -- multiple `data.frames`
+
+--
+
+- To merge data, we have to find a point of _commonality_
+
+--
+
+- The attribute of _commonality_ is the _relation_ (e.g. realational data!)
+
+---
+
+# Relational Data
+
+To work with relational data we need "verbs" that work with _pairs_ (**2**) of tables.
+
+--
+
+ - **Mutating joins**: add *new* variables to one table from matching observations in another.
+
+--
+
+ - **Filtering joins**:  filter observations from one table if they match an observation in the other table.
+
+--
+
+The most common place to find relational data is in a relational database management system (or RDBMS)
+
+
+---
+
+# Keys
+
+- The _variables_ used to connect a pair tables are called **keys**.
+
+--
+
+- A key is a variable (or set of variables) that uniquely identifies an observation or "unit". 
+
+
+
+---
+
+# Keys
+
+There are two types of keys:
+
+--
+
+- **Primary keys**: *uniquely* identify observations in its own table. 
+
+--
+
+- **Foreign keys**: *uniquely* identify observations in another table. 
+
+--
+
+- A _primary_ key and a corresponding _foreign_ key form a _relation._ 
+
+--
+
+- Relations are typically one-to-many but can be one-to-one
+
+---
+
+
+# Todays Data:
+
+.pull-left[
+```{r}
+band_members
+```
+]
+
+.pull-right[
+```{r}
+band_instruments
+```
+]
+
+
+---
+class: center,middle
+# The basics
+<img src="img/sql-table-joins.png"> 
+---
+
+---
+class: inverse, center, middle
+# Mutating Joins
+add *new* variables to one table from matching observations in another.
+---
+
+**inner_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from x and y. 
+
+---
+# Inner Join
+
+
+If there are multiple matches between x and y, all combination of the matches are returned. This is a mutating join.
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### inner_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(2:3, bold = T, color = col1, background = col2)  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:2, bold = T, color = col1, background = col2) 
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+inner_join(band_members, band_instruments, by = "name") %>% 
+   mutate(
+    band = cell_spec(band, "html", color = ifelse(is.na(band), "red", "black")),
+    plays = cell_spec(plays, "html", color = ifelse(is.na(plays), "red", "black")))%>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 18)  
+```
+
+---
+
+# The other mutating joins
+
+**left_join(x, y)**: Return all rows from _x_, and all columns from _x_ and _y_. 
+
+
+**right_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from _x_ and _y_. 
+
+**full_join(x, y)**: Return all rows and columns from both _x_ and _y_.
+
+
+---
+class: middle, center, inverse 
+# Filtering Joins
+
+"Filtering" joins keep cases from the LHS
+---
+
+# Semi Join
+
+**semi_join(x, y)**:  Return all rows from _x_ where there are matching values in _ y_, keeping just columns from _x_. 
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### semi_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(2:3, bold = T, color = "darkred", background = "white")  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:2, bold = T, color = col1, background = "gray50")  
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+semi_join(band_members, band_instruments, by = "name") %>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 24)  
+```
+---
+
+# Anti Join
+
+**anti_join(x, y)**: Return all rows from _x_ where there are **not** matching values in _y_, keeping just columns from _x_. 
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### anti_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+anti_join(band_members, band_instruments, by = "name") %>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 24)  
+```
+
+
+---
+
+# When keys dont share a name
+
+.pull-left[
+```{r}
+(band_members2 = band_members %>% 
+  select(first_name = name, band))
+```
+]
+
+.pull-right[
+```{r}
+inner_join(band_members2, 
+           band_instruments, 
+           by = c('first_name' = 'name'))
+```
+]
+
+---
+
+# Summary
+
+- To a computer all data is bytes
+- Software like R/Python know how to interpret bytes as values
+- Multiple values can be stored with structure
+- Like type values can be stored in atomic vectors and dislike types can be stored as lists
+
+- Both R and python make extensive use of data.frames which are lists with enforced equal length elements (columns)
+
+- SQL-ish and other data manipulations can be executed on data.frames for custom analysis, data creation, and question answering
+
+
+
+
+
+
+

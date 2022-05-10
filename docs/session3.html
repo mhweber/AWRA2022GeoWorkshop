@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Joining Data</title>
+    <meta charset="utf-8" />
+    <script src="libs/header-attrs-2.13/header-attrs.js"></script>
+    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
+    <link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+    <link rel="stylesheet" href="ucsb.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Joining Data
+]
+
+---
+
+
+&lt;style type="text/css"&gt;
+.remark-code{font-size: 100%}
+&lt;/style&gt;
+
+
+
+# Relational Data
+
+- There will come a time when you need data from different sources. 
+
+--
+
+- When this happens we must join -- or merge -- multiple tables
+
+--
+
+- Multiple tables of data are called *relational data** because the relations are an equal part of the data
+
+--
+
+- To merge data, we have to find a point of _commonality_
+
+--
+
+- That point -- or attribute -- of _commonality_ is the _realtion_
+
+---
+
+# Relational Data
+
+To work with relational data we need "verbs" that work with _pairs_ (**2**) of tables.
+
+--
+
+ - **Mutating joins**: add *new* variables to one table from matching observations in another.
+
+--
+
+ - **Filtering joins**:  filter observations from one table if they match an observation in the other table.
+
+--
+
+The most common place to find relational data is in a relational database management system (or RDBMS)
+
+
+---
+
+# Keys
+
+- The _variables_ used to connect a pair tables are called **keys**.
+
+--
+
+- A key is a variable (or set of variables) that uniquely identifies an observation or "unit". 
+
+--
+
+- Sometimes, a single variable is enough...
+  - For example, each county in the USA is uniquely identified by its FIP code.
+  - Each state is unique identified by its name
+  - ...
+
+--
+
+In other cases, multiple variables may be needed.
+
+---
+
+# Keys
+
+There are two types of keys:
+
+--
+
+- **Primary keys**: *uniquely* identify observations in its own table. 
+
+--
+
+- **Foreign keys**: *uniquely* identify observations in another table. 
+
+--
+
+- A _primary_ key and a corresponding _foreign_ key form a _relation._ 
+
+--
+
+- Relations are typically one-to-many but can be one-to-one
+
+---
+
+
+# Todays Data:
+
+.pull-left[
+
+```r
+band_members
+```
+
+```
+# A tibble: 3 × 2
+  name  band   
+  &lt;chr&gt; &lt;chr&gt;  
+1 Mick  Stones 
+2 John  Beatles
+3 Paul  Beatles
+```
+]
+
+.pull-right[
+
+```r
+band_instruments
+```
+
+```
+# A tibble: 3 × 2
+  name  plays 
+  &lt;chr&gt; &lt;chr&gt; 
+1 John  guitar
+2 Paul  bass  
+3 Keith guitar
+```
+]
+
+
+---
+class: inverse, center, middle
+# Mutating Joins
+add *new* variables to one table from matching observations in another.
+---
+
+class: center,middle
+# The basics
+&lt;img src="img/sql-table-joins.png"&gt; 
+
+---
+
+---
+# Inner Join
+
+**inner_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from x and y. 
+
+If there are multiple matches between x and y, all combination of the matches are returned. This is a mutating join.
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### inner_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+# Left Join
+
+**left_join(x, y)**: Return all rows from _x_, and all columns from _x_ and _y_. 
+
+If there are multiple matches between x and y, all combination of the matches are returned. 
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### left_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Stones&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+# Right Join
+
+**right_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from _x_ and _y_. 
+
+If there are multiple matches between x and y, all combination of the matches are returned.
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### right_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+# Full Join
+
+**full_join(x, y)**: Return all rows and columns from both _x_ and _y_.
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### full_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: navy !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Stones&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;Beatles&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;bass&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: red !important;"&gt;NA&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; &lt;span style="     color: black !important;"&gt;guitar&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+class: center,middle
+&lt;img src="lec-img/07-joins.png"&gt; 
+---
+class: middle, center, inverse 
+# Filtering Joins
+
+"Filtering" joins keep cases from the LHS
+---
+
+# Semi Join
+
+**semi_join(x, y)**:  Return all rows from _x_ where there are matching values in _ y_, keeping just columns from _x_. 
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### semi_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+---
+
+# Anti Join
+
+**anti_join(x, y)**: Return all rows from _x_ where there are **not** matching values in _y_, keeping just columns from _x_. 
+
+--
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+****
+
+### anti_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; float: left; margin-right: 10px;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: darkred !important;background-color: white !important;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Beatles &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-right: 0; margin-left: auto"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; plays &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; John &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; Paul &lt;/td&gt;
+   &lt;td style="text-align:left;font-weight: bold;color: red !important;background-color: gray50 !important;"&gt; bass &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Keith &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; guitar &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+--
+
+****
+
+&lt;table class="table" style="font-size: 24px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; name &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; band &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Stones &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+# When keys dont share a name
+
+.pull-left[
+
+```r
+(band_members2 = band_members %&gt;% 
+  select(first_name = name, band))
+```
+
+```
+# A tibble: 3 × 2
+  first_name band   
+  &lt;chr&gt;      &lt;chr&gt;  
+1 Mick       Stones 
+2 John       Beatles
+3 Paul       Beatles
+```
+]
+
+.pull-right[
+
+```r
+inner_join(band_members2, 
+           band_instruments, 
+           by = c('first_name' = 'name'))
+```
+
+```
+# A tibble: 2 × 3
+  first_name band    plays 
+  &lt;chr&gt;      &lt;chr&gt;   &lt;chr&gt; 
+1 John       Beatles guitar
+2 Paul       Beatles bass  
+```
+]
+
+---
+
+# Summary
+
+- To a computer all data is bytes
+- Software like R/Python know how to interpret bytes as values
+- Multiple values can be stored with structure
+- Like type values can be stored in atomic vectors and dislike values can be stored as lists
+
+- Both R and python make extensive use of data.frames which are lists with enforced equal length elements (columns)
+
+- SQL-ish and other data manipulations can be executed on data.frames for custom analysis, data creation, and question answering
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:10",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

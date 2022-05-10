@@ -1,0 +1,477 @@
+---
+title: Joining Data
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: ucsb.css
+    nature:
+      ratio: 16:10
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{css, eval = TRUE, echo = F}
+.remark-code{font-size: 100%}
+```
+
+```{r setup, include=FALSE}
+oldoption <- options(scipen = 9999)
+options(scipen = 9999)
+
+knitr::opts_chunk$set(fig.width = 6, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      comment = "", 
+                      cache = FALSE, 
+                      fig.retina = 3)
+
+# Formating
+library(knitr)
+library(flipbookr)
+library(kableExtra)
+col1 = "red"
+col2 = "navy"
+
+# Work
+library(dataRetrieval)
+library(dplyr)
+```
+
+# Relational Data
+
+- There will come a time when you need data from different sources. 
+
+--
+
+- When this happens we must join -- or merge -- multiple tables
+
+--
+
+- Multiple tables of data are called *relational data** because the relations are an equal part of the data
+
+--
+
+- To merge data, we have to find a point of _commonality_
+
+--
+
+- That point -- or attribute -- of _commonality_ is the _realtion_
+
+---
+
+# Relational Data
+
+To work with relational data we need "verbs" that work with _pairs_ (**2**) of tables.
+
+--
+
+ - **Mutating joins**: add *new* variables to one table from matching observations in another.
+
+--
+
+ - **Filtering joins**:  filter observations from one table if they match an observation in the other table.
+
+--
+
+The most common place to find relational data is in a relational database management system (or RDBMS)
+
+
+---
+
+# Keys
+
+- The _variables_ used to connect a pair tables are called **keys**.
+
+--
+
+- A key is a variable (or set of variables) that uniquely identifies an observation or "unit". 
+
+--
+
+- Sometimes, a single variable is enough...
+  - For example, each county in the USA is uniquely identified by its FIP code.
+  - Each state is unique identified by its name
+  - ...
+
+--
+
+In other cases, multiple variables may be needed.
+
+---
+
+# Keys
+
+There are two types of keys:
+
+--
+
+- **Primary keys**: *uniquely* identify observations in its own table. 
+
+--
+
+- **Foreign keys**: *uniquely* identify observations in another table. 
+
+--
+
+- A _primary_ key and a corresponding _foreign_ key form a _relation._ 
+
+--
+
+- Relations are typically one-to-many but can be one-to-one
+
+---
+
+
+# Todays Data:
+
+.pull-left[
+```{r}
+band_members
+```
+]
+
+.pull-right[
+```{r}
+band_instruments
+```
+]
+
+
+---
+class: inverse, center, middle
+# Mutating Joins
+add *new* variables to one table from matching observations in another.
+---
+
+class: center,middle
+# The basics
+<img src="img/sql-table-joins.png"> 
+
+---
+
+---
+# Inner Join
+
+**inner_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from x and y. 
+
+If there are multiple matches between x and y, all combination of the matches are returned. This is a mutating join.
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### inner_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(2:3, bold = T, color = col1, background = col2)  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:2, bold = T, color = col1, background = col2) 
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+inner_join(band_members, band_instruments, by = "name") %>% 
+   mutate(
+    band = cell_spec(band, "html", color = ifelse(is.na(band), "red", "black")),
+    plays = cell_spec(plays, "html", color = ifelse(is.na(plays), "red", "black")))%>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 18)  
+```
+
+---
+
+# Left Join
+
+**left_join(x, y)**: Return all rows from _x_, and all columns from _x_ and _y_. 
+
+If there are multiple matches between x and y, all combination of the matches are returned. 
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### left_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(1:3, bold = T, color = col1, background = col2)  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:2, bold = T, color = col1, background = col2) 
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+left_join(band_members, band_instruments, by = "name") %>% 
+   mutate(
+    band = cell_spec(band, "html", color = ifelse(is.na(band), "red", "black")),
+    plays = cell_spec(plays, "html", color = ifelse(is.na(plays), "red", "black")))%>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 18)  
+```
+
+---
+
+# Right Join
+
+**right_join(x, y)**: Return all rows from _x_ where there are matching values in _y_, and all columns from _x_ and _y_. 
+
+If there are multiple matches between x and y, all combination of the matches are returned.
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### right_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(2:3, bold = T, color = col1, background = col2)  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:3, bold = T, color = col1, background = col2) 
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+right_join(band_members, band_instruments, by = "name") %>% 
+   mutate(
+    band = cell_spec(band, "html", color = ifelse(is.na(band), "red", "black")),
+    plays = cell_spec(plays, "html", color = ifelse(is.na(plays), "red", "black")))%>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 18)  
+```
+
+---
+# Full Join
+
+**full_join(x, y)**: Return all rows and columns from both _x_ and _y_.
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### full_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18) %>% 
+  row_spec(1:3, bold = T, color = col1, background = col2)  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18) %>% 
+  row_spec(1:3, bold = T, color = col1, background = col2) 
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+full_join(band_members, band_instruments, by = "name") %>% 
+   mutate(
+    band = cell_spec(band, "html", color = ifelse(is.na(band), "red", "black")),
+    plays = cell_spec(plays, "html", color = ifelse(is.na(plays), "red", "black")))%>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 18)  
+```
+
+---
+class: center,middle
+<img src="lec-img/07-joins.png"> 
+---
+class: middle, center, inverse 
+# Filtering Joins
+
+"Filtering" joins keep cases from the LHS
+---
+
+# Semi Join
+
+**semi_join(x, y)**:  Return all rows from _x_ where there are matching values in _ y_, keeping just columns from _x_. 
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### semi_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(2:3, bold = T, color = "darkred", background = "white")  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24) %>% 
+  row_spec(1:2, bold = T, color = col1, background = "gray50")  
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+semi_join(band_members, band_instruments, by = "name") %>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 24)  
+```
+---
+
+# Anti Join
+
+**anti_join(x, y)**: Return all rows from _x_ where there are **not** matching values in _y_, keeping just columns from _x_. 
+
+--
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 18)
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 18)
+```
+
+--
+
+****
+
+### anti_join(band_members, band_instruments, by = "name")
+
+--
+
+****
+
+```{r, echo = FALSE}
+kable(band_members) %>%
+  kable_styling(full_width = FALSE, position = "float_left", font_size = 24) %>% 
+  row_spec(1, bold = T, color = "darkred", background = "white")  
+kable(band_instruments) %>%
+  kable_styling(full_width = FALSE, position = "right", font_size = 24)  %>% 
+  row_spec(1:2, bold = T, color = col1, background = "gray50")  
+```
+
+
+--
+
+****
+
+```{r, echo = FALSE}
+anti_join(band_members, band_instruments, by = "name") %>% 
+  kable(format = "html", escape = F) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 24)  
+```
+
+
+---
+
+# When keys dont share a name
+
+.pull-left[
+```{r}
+(band_members2 = band_members %>% 
+  select(first_name = name, band))
+```
+]
+
+.pull-right[
+```{r}
+inner_join(band_members2, 
+           band_instruments, 
+           by = c('first_name' = 'name'))
+```
+]
+
+---
+
+# Summary
+
+- To a computer all data is bytes
+- Software like R/Python know how to interpret bytes as values
+- Multiple values can be stored with structure
+- Like type values can be stored in atomic vectors and dislike values can be stored as lists
+
+- Both R and python make extensive use of data.frames which are lists with enforced equal length elements (columns)
+
+- SQL-ish and other data manipulations can be executed on data.frames for custom analysis, data creation, and question answering
+
