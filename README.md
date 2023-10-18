@@ -14,7 +14,7 @@ Loosly based on [Introduction of Geoinformatics](https://mikejohnson51.github.io
 
  - [Data Manipulation](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#2)
 
- - [Vector Data 101](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#3)
+ - [Vector Data 101](https://mhweber.github.io/AWRA2022GeoWorkshop/session3)
 
 ## Getting Started
 
