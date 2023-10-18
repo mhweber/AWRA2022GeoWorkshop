@@ -10,9 +10,9 @@ Geospatial R and Python Workshop.
 
 Loosly based on [Introduction of Geoinformatics](https://mikejohnson51.github.io/spds/)
 
- - [Data Type and Structure](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#1)
+ - [Data Type and Structure](https://mhweber.github.io/AWRA2022GeoWorkshop/session1)
 
- - [Data Manipulation](https://mhweber.github.io/AWRA2022GeoWorkshop/session1.html#2)
+ - [Data Manipulation](https://mhweber.github.io/AWRA2022GeoWorkshop/session2)
 
  - [Vector Data 101](https://mhweber.github.io/AWRA2022GeoWorkshop/session3)
 
